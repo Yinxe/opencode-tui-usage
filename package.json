@@ -1,5 +1,5 @@
 {
-  "name": "opencode-tui-usage-plugin",
+  "name": "@yinx-in/opencode-tui-usage",
   "version": "1.0.0",
   "description": "OpenCode TUI 额度显示插件 - 在侧边栏显示用量和额度信息",
   "type": "module",
@@ -32,7 +32,7 @@
     "quota",
     "usage"
   ],
-  "author": "",
+  "author": "Yinxe",
   "license": "MIT",
   "peerDependencies": {
     "@opencode-ai/plugin": "^1.0.0"

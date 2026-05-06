@@ -5,7 +5,7 @@ import { Title, ProgressBar } from "./components.jsx";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { QuotaResult } from "./quota/types.js";
 
-const REFRESH_INTERVAL = 10;
+const REFRESH_INTERVAL = 60;
 
 function formatDuration(totalSeconds: number): string {
   if (totalSeconds < 60) {
