@@ -1,23 +1,78 @@
 /** @jsxImportSource @opentui/solid */
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from '@opencode-ai/plugin/tui';
+import type { JSX } from 'solid-js';
+import { createSignal, createEffect, Show } from 'solid-js';
 import { LabelValue, Title, ProgressBar } from './components.jsx';
 
 const id = 'opencode-tui-usage-plugin';
+
+interface SidebarData {
+  sessionId: string;
+  branch: string | undefined;
+  provider: string;
+  model: string;
+  messageCount: number;
+  todoCount: number;
+  diffCount: number;
+}
+
+function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.Element {
+  const [data, setData] = createSignal<SidebarData | null>(null);
+
+  createEffect(() => {
+    const sessionId = props.sessionId;
+
+    const messages = props.api.state.session.messages(sessionId);
+    const todos = props.api.state.session.todo(sessionId);
+    const diff = props.api.state.session.diff(sessionId);
+    const vcs = props.api.state.vcs;
+    const providers = props.api.state.provider;
+
+    const firstProvider = providers.length > 0 ? providers[0] : null;
+    const modelNames = firstProvider ? Object.keys(firstProvider.models) : [];
+
+    setData({
+      sessionId,
+      branch: vcs?.branch,
+      provider: firstProvider?.name ?? 'None',
+      model: modelNames.length > 0 ? modelNames[0] : 'None',
+      messageCount: messages.length,
+      todoCount: todos.length,
+      diffCount: diff.length,
+    });
+  });
+
+  return (
+    <box gap={0}>
+      <Title text="Session Info" color="#6bcf7f" />
+      <ProgressBar value={65} color="#6bcf7f" />
+
+      <Show when={data()} fallback={<text>Loading...</text>}>
+        {() => {
+          const d = data()!;
+          return (
+            <>
+              <LabelValue label="Session" value={d.sessionId.slice(0, 8) + '...'} labelColor="#6bcf7f" />
+              <LabelValue label="Branch" value={d.branch ?? 'N/A'} labelColor="#ffd93d" />
+              <LabelValue label="Provider" value={d.provider} labelColor="#6bcf7f" />
+              <LabelValue label="Model" value={d.model} labelColor="#6bcf7f" />
+              <LabelValue label="Messages" value={d.messageCount} labelColor="#ffd93d" />
+              <LabelValue label="TODOs" value={d.todoCount} labelColor="#ffd93d" />
+              <LabelValue label="Changes" value={d.diffCount} labelColor="#ffd93d" />
+            </>
+          );
+        }}
+      </Show>
+    </box>
+  );
+}
 
 const tui: TuiPlugin = async (api) => {
   api.slots.register({
     order: 150,
     slots: {
       sidebar_content(_ctx: unknown, _props: { session_id: string }) {
-        return (
-          <box gap={0}>
-            <Title text="My Plugin" color="#6bcf7f" />
-            <ProgressBar value={65} color="#6bcf7f" />
-            <LabelValue label="Status" value="Active" labelColor="#6bcf7f" />
-            <LabelValue label="Credits" value={100} labelColor="#ffd93d" />
-            <LabelValue label="Version" value="1.0.0" />
-          </box>
-        );
+        return <SessionInfoView api={api} sessionId={_props.session_id} />;
       },
     },
   });
