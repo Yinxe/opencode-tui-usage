@@ -28,14 +28,20 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
     const vcs = props.api.state.vcs;
     const providers = props.api.state.provider;
 
-    const firstProvider = providers.length > 0 ? providers[0] : null;
-    const modelNames = firstProvider ? Object.keys(firstProvider.models) : [];
+    const providerMap = new Map(providers.map(p => [p.id, p.name]));
+
+    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+    const lastModelInfo = lastAssistantMsg && 'modelID' in lastAssistantMsg
+      ? { providerID: lastAssistantMsg.providerID, modelID: lastAssistantMsg.modelID }
+      : null;
+
+    const providerName = lastModelInfo ? (providerMap.get(lastModelInfo.providerID) ?? lastModelInfo.providerID) : 'None';
 
     setData({
       sessionId,
       branch: vcs?.branch,
-      provider: firstProvider?.name ?? 'None',
-      model: modelNames.length > 0 ? modelNames[0] : 'None',
+      provider: providerName,
+      model: lastModelInfo?.modelID ?? 'None',
       messageCount: messages.length,
       todoCount: todos.length,
       diffCount: diff.length,
