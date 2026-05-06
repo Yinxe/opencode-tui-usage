@@ -6,8 +6,9 @@ OpenCode TUI 插件，在侧边栏显示自定义信息。
 
 ```
 src/
-├── tui.tsx    # 插件入口，注册 sidebar_content slot
-├── index.ts   # 重新导出 tui
+├── tui.tsx        # 插件入口，注册 sidebar_content slot
+├── components.tsx  # 可复用组件（LabelValue, Title, ProgressBar）
+└── index.ts       # 重新导出 tui
 ```
 
 ## 技术要求
@@ -37,6 +38,27 @@ interface LabelValueProps {
 ```
 
 输出：`Status: Active`（Status 显示为绿色）
+
+### Title - 标题
+
+```tsx
+<Title text="My Plugin" color="#6bcf7f" />
+```
+
+### ProgressBar - 进度条
+
+```tsx
+interface ProgressBarProps {
+  value: number;  // 0-100
+  color?: string; // 默认 #6bcf7f
+  width?: number; // 默认 20
+}
+
+<ProgressBar value={65} color="#ffd93d" />
+<ProgressBar value={80} width={15} />
+```
+
+输出：`██████▒▒▒▒▒▒▒▒▒▒`（65% 进度）
 
 ## 开发命令
 
