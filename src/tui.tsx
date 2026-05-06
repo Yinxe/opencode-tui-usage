@@ -26,21 +26,16 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
     const todos = props.api.state.session.todo(sessionId);
     const diff = props.api.state.session.diff(sessionId);
     const vcs = props.api.state.vcs;
-    const providers = props.api.state.provider;
-
-    const providerMap = new Map(providers.map(p => [p.id, p.name]));
 
     const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
     const lastModelInfo = lastAssistantMsg && 'modelID' in lastAssistantMsg
       ? { providerID: lastAssistantMsg.providerID, modelID: lastAssistantMsg.modelID }
       : null;
 
-    const providerName = lastModelInfo ? (providerMap.get(lastModelInfo.providerID) ?? lastModelInfo.providerID) : 'None';
-
     setData({
       sessionId,
       branch: vcs?.branch,
-      provider: providerName,
+      provider: lastModelInfo?.providerID ?? 'None',
       model: lastModelInfo?.modelID ?? 'None',
       messageCount: messages.length,
       todoCount: todos.length,
@@ -58,11 +53,11 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
           const d = data()!;
           return (
             <>
-              <LabelValue label="Session" value={d.sessionId.slice(0, 8) + '...'} labelColor="#6bcf7f" />
-              <LabelValue label="Branch" value={d.branch ?? 'N/A'} labelColor="#ffd93d" />
-              <LabelValue label="Provider" value={d.provider} labelColor="#6bcf7f" />
-              <LabelValue label="Model" value={d.model} labelColor="#6bcf7f" />
-              <LabelValue label="Messages" value={d.messageCount} labelColor="#ffd93d" />
+              <text>{d.sessionId.slice(0, 8)}</text>
+              <text fg={d.branch ? '#6bcf7f' : '#888'}>{d.branch ?? 'No branch'}</text>
+              <text>{d.provider}</text>
+              <text>{d.model}</text>
+              <LabelValue label="Msgs" value={d.messageCount} labelColor="#6bcf7f" />
               <LabelValue label="TODOs" value={d.todoCount} labelColor="#ffd93d" />
               <LabelValue label="Changes" value={d.diffCount} labelColor="#ffd93d" />
             </>
