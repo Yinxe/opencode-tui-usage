@@ -18,19 +18,6 @@ interface SidebarData {
   messageCount: number;
   todoCount: number;
   diffCount: number;
-  contextPercent: number;
-  contextUsed: number;
-  contextLimit: number;
-}
-
-function formatPercent(value: number): string {
-  return value.toFixed(1) + "%";
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toString();
 }
 
 interface UsageData {
@@ -90,7 +77,6 @@ function SessionInfoView(props: {
     const todos = props.api.state.session.todo(sessionId);
     const diff = props.api.state.session.diff(sessionId);
     const vcs = props.api.state.vcs;
-    const providers = props.api.state.provider;
 
     const lastAssistantMsg = [...messages]
       .reverse()
@@ -103,27 +89,6 @@ function SessionInfoView(props: {
           }
         : null;
 
-    let contextPercent = 0;
-    let contextUsed = 0;
-    let contextLimit = 0;
-
-    if (lastAssistantMsg && "tokens" in lastAssistantMsg) {
-      const tokens = lastAssistantMsg.tokens;
-      contextUsed = tokens.input || 0;
-
-      for (const p of providers) {
-        const model = p.models[lastModelInfo?.modelID ?? ""];
-        if (model) {
-          contextLimit = model.limit.context;
-          break;
-        }
-      }
-
-      if (contextLimit > 0) {
-        contextPercent = (contextUsed / contextLimit) * 100;
-      }
-    }
-
     setData({
       sessionId,
       branch: vcs?.branch,
@@ -132,9 +97,6 @@ function SessionInfoView(props: {
       messageCount: messages.length,
       todoCount: todos.length,
       diffCount: diff.length,
-      contextPercent,
-      contextUsed,
-      contextLimit,
     });
   });
 
@@ -179,20 +141,6 @@ function SessionInfoView(props: {
                 value={d.diffCount}
                 labelColor="#00cec9"
               />
-              <LabelValue
-                label="Context"
-                value={formatPercent(d.contextPercent)}
-                labelColor="#ff7675"
-              />
-              <box flexDirection="row" gap={0}>
-                <ProgressBar
-                  value={d.contextPercent}
-                  color={d.contextPercent > 80 ? "#ff6b6b" : "#6bcf7f"}
-                />
-                <text fg="#888">
-                  {formatNumber(d.contextUsed)}/{formatNumber(d.contextLimit)}
-                </text>
-              </box>
             </>
           );
         }}
