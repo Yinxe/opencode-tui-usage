@@ -11,12 +11,17 @@ interface UsageData {
   monthlyTime: string;
 }
 
-interface UsageViewProps {
-  data: UsageData;
-}
+const mockUsage: UsageData = {
+  rollingPercent: 20,
+  rollingTime: "2h",
+  weeklyPercent: 10,
+  weeklyTime: "3d4h",
+  monthlyPercent: 1,
+  monthlyTime: "18d",
+};
 
-export function UsageView(props: UsageViewProps): JSX.Element {
-  const u = props.data;
+export function UsageView(): JSX.Element {
+  const u = mockUsage;
   return (
     <box gap={0}>
       <Title text="Usage" color="#6bcf7f" />
@@ -40,15 +45,4 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       <ProgressBar value={u.monthlyPercent} color="#6bcf7f" />
     </box>
   );
-}
-
-export function getMockUsageData(): UsageData {
-  return {
-    rollingPercent: 20,
-    rollingTime: "2h",
-    weeklyPercent: 10,
-    weeklyTime: "3d4h",
-    monthlyPercent: 1,
-    monthlyTime: "18d",
-  };
 }
