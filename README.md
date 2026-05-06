@@ -2,7 +2,7 @@
 
 OpenCode TUI 插件，在侧边栏显示用量和额度信息，支持多额度 provider。
 
-![screenshot](./screenshot.png)
+![preview](./preview.png)
 
 ## 功能特性
 
