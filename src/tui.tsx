@@ -98,51 +98,14 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
               <LabelValue label="TODOs" value={d.todoCount} labelColor="#fd79a8" />
               <LabelValue label="Changes" value={d.diffCount} labelColor="#00cec9" />
               <LabelValue label="Context" value={formatPercent(d.contextPercent)} labelColor="#ff7675" />
+              <box flexDirection="row" gap={1}>
+                <ProgressBar value={d.contextPercent} color={d.contextPercent > 80 ? '#ff6b6b' : '#6bcf7f'} />
+                <text fg="#888">{formatNumber(d.contextUsed)}/{formatNumber(d.contextLimit)}</text>
+              </box>
             </>
           );
         }}
       </Show>
-    </box>
-  );
-}
-
-function ContextProgressView(props: { api: TuiPluginApi; sessionId: string }): JSX.Element {
-  const [percent, setPercent] = createSignal(0);
-  const [used, setUsed] = createSignal(0);
-  const [limit, setLimit] = createSignal(0);
-
-  createEffect(() => {
-    const sessionId = props.sessionId;
-    const messages = props.api.state.session.messages(sessionId);
-    const providers = props.api.state.provider;
-
-    const lastMsg = [...messages].reverse().find(m => m.role === 'assistant' && 'tokens' in m);
-    if (!lastMsg) return;
-
-    const tokens = lastMsg.tokens;
-    const inputTokens = tokens.input || 0;
-
-    let ctxLimit = 0;
-    for (const p of providers) {
-      for (const model of Object.values(p.models)) {
-        if (model.limit.context > 0) {
-          ctxLimit = model.limit.context;
-          break;
-        }
-      }
-      if (ctxLimit > 0) break;
-    }
-
-    setUsed(inputTokens);
-    setLimit(ctxLimit);
-    setPercent(ctxLimit > 0 ? (inputTokens / ctxLimit) * 100 : 0);
-  });
-
-  return (
-    <box flexDirection="row" gap={1}>
-      <text>Context:</text>
-      <ProgressBar value={percent()} color={percent() > 80 ? '#ff6b6b' : '#6bcf7f'} />
-      <text>{formatNumber(used())}/{formatNumber(limit())}</text>
     </box>
   );
 }
@@ -153,9 +116,6 @@ const tui: TuiPlugin = async (api) => {
     slots: {
       sidebar_content(_ctx: unknown, _props: { session_id: string }) {
         return <SessionInfoView api={api} sessionId={_props.session_id} />;
-      },
-      sidebar_footer(_ctx: unknown, _props: { session_id: string }) {
-        return <ContextProgressView api={api} sessionId={_props.session_id} />;
       },
     },
   });
