@@ -2,6 +2,7 @@ import type { QuotaResult } from "./types.js";
 import type { QuotaProvider } from "./provider.js";
 import { readProviderConfig, getProviderConfig } from "./config.js";
 import { MiniMaxCNQuotaProvider } from "./providers/minimax.js";
+import { OpenCodeGoQuotaProvider } from "./providers/opencode-go.js";
 
 export class QuotaService {
   private providers: Map<string, QuotaProvider> = new Map();
@@ -12,6 +13,7 @@ export class QuotaService {
 
   constructor() {
     this.registerProvider(new MiniMaxCNQuotaProvider());
+    this.registerProvider(new OpenCodeGoQuotaProvider());
   }
 
   registerProvider(provider: QuotaProvider): void {

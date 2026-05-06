@@ -30,11 +30,8 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
   private baseUrl = "https://www.minimaxi.com";
 
   init(config: ProviderConfig, _credentials: Record<string, unknown>): void {
-    console.log("[MiniMaxCNQuotaProvider] init called with config:", JSON.stringify(config));
     const apiKeyRaw = config.apiKey as string | undefined;
-    console.log("[MiniMaxCNQuotaProvider] apiKey raw:", apiKeyRaw);
     this.apiKey = resolveEnvVar(apiKeyRaw) || resolveEnvVar(config.apiKeyEnvVar as string | undefined);
-    console.log("[MiniMaxCNQuotaProvider] apiKey resolved:", this.apiKey ? "****" : "undefined");
   }
 
   async fetchQuota(): Promise<QuotaData | null> {
@@ -43,7 +40,6 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
       return null;
     }
 
-    console.log("[MiniMaxCNQuotaProvider] Fetching quota from API...");
     try {
       const response = await fetch(
         `${this.baseUrl}/v1/api/openplatform/coding_plan/remains`,
@@ -56,14 +52,12 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
         }
       );
 
-      console.log("[MiniMaxCNQuotaProvider] Response status:", response.status);
       if (!response.ok) {
         console.error(`[MiniMaxCNQuotaProvider] API error: ${response.status}`);
         return null;
       }
 
       const data = (await response.json()) as CodingPlanResponse;
-      console.log("[MiniMaxCNQuotaProvider] Response data:", JSON.stringify(data));
 
       if (data.base_resp?.status_code !== 0) {
         console.error(`[MiniMaxCNQuotaProvider] API error: ${data.base_resp?.status_msg}`);
@@ -73,8 +67,6 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
       const codingPlanModels = data.model_remains.filter((m) =>
         m.model_name.startsWith("MiniMax-M")
       );
-
-      console.log("[MiniMaxCNQuotaProvider] Coding plan models found:", codingPlanModels.length);
 
       if (codingPlanModels.length === 0) {
         console.warn("[MiniMaxCNQuotaProvider] No coding plan models found");
