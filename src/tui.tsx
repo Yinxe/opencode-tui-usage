@@ -53,13 +53,13 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
           const d = data()!;
           return (
             <>
-              <text>{d.sessionId.slice(0, 8)}</text>
-              <text fg={d.branch ? '#6bcf7f' : '#888'}>{d.branch ?? 'No branch'}</text>
-              <text>{d.provider}</text>
-              <text>{d.model}</text>
-              <LabelValue label="Msgs" value={d.messageCount} labelColor="#6bcf7f" />
-              <LabelValue label="TODOs" value={d.todoCount} labelColor="#ffd93d" />
-              <LabelValue label="Changes" value={d.diffCount} labelColor="#ffd93d" />
+              <LabelValue label="Session" value={d.sessionId.slice(0, 8) + '...'} labelColor="#6bcf7f" />
+              <LabelValue label="Branch" value={d.branch ?? 'N/A'} labelColor="#ffd93d" />
+              <LabelValue label="Provider" value={d.provider} labelColor="#ff6b6b" />
+              <LabelValue label="Model" value={d.model} labelColor="#74b9ff" />
+              <LabelValue label="Messages" value={d.messageCount} labelColor="#a29bfe" />
+              <LabelValue label="TODOs" value={d.todoCount} labelColor="#fd79a8" />
+              <LabelValue label="Changes" value={d.diffCount} labelColor="#00cec9" />
             </>
           );
         }}
