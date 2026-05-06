@@ -15,7 +15,7 @@ src/
     ├── types.ts         # QuotaData, QuotaResult, ProviderConfig 类型
     ├── provider.ts       # QuotaProvider 抽象接口
     ├── service.ts        # QuotaService 管理多 provider
-    ├── config.ts         # 读取 usage.provider.json 和 usage.plugin.json
+    ├── config.ts         # 读取 usage.provider.json
     └── providers/        # provider 实现
         └── minimax.ts    # MiniMax 额度 API 实现
 ```
@@ -66,8 +66,8 @@ src/
 ### QuotaData（Provider 返回）
 ```ts
 {
-  rolling: { usage: "14", reset: "4h32m" } | undefined,
-  weekly: { usage: "44", reset: "5d" } | undefined,
+  rolling: { usage: 20, reset: "4h32m" } | undefined,  // usage 是 0-100 数字
+  weekly: { usage: 10, reset: "5d" } | undefined,
   monthly: undefined  // undefined 表示无限制
 }
 ```
@@ -75,7 +75,7 @@ src/
 ### QuotaResult（QuotaService 返回给 TUI）
 ```ts
 {
-  provider: "minimax",
+  provider: "minimax-cn-coding-plan",
   quota: QuotaData,
   refreshCount: 23  // 累计刷新次数
 }
@@ -127,7 +127,7 @@ npm run dev   # 监听模式
 
 查看日志：
 ```bash
-cat ~/.local/share/opencode/log/$(ls -t ~/.local/share/opencode/log/ | head -1) | grep -i "tui.plugin\|error"
+cat ~/.local/share/opencode/log/$(ls -t ~/.local/share/opencode/log/ | head -1) | grep -i "tui.plugin\|error\|QuotaService\|MiniMaxCN"
 ```
 
 常见错误：
@@ -135,3 +135,19 @@ cat ~/.local/share/opencode/log/$(ls -t ~/.local/share/opencode/log/ | head -1) 
 - JSX pragma 错误（每个 .tsx 需要 `/** @jsxImportSource @opentui/solid */`）
 - tui.json 中用了 `"plugins"` 而不是 `"plugin"`
 - 导入路径缺少扩展名（需要 `.jsx`）
+
+## 配置
+
+额度配置读取 `~/.config/opencode/usage.provider.json`：
+
+```json
+{
+  "providers": {
+    "minimax-cn-coding-plan": {
+      "apiKey": "${MINIMAX_API_KEY}"
+    }
+  }
+}
+```
+
+支持环境变量占位符 `${VAR_NAME}`，会自动从 `process.env` 解析。
