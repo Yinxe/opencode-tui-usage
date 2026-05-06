@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import type { JSX } from 'solid-js';
+import type { JSX } from "solid-js";
 
 export interface LabelValueProps {
   label: string;
@@ -35,13 +35,15 @@ export interface ProgressBarProps {
 export function ProgressBar(props: ProgressBarProps): JSX.Element {
   const width = props.width ?? 20;
   const filled = Math.round((props.value / 100) * width);
-  const empty = width - filled;
+  const empty = filled === 0 ? width - 1 : width - filled;
   const barColor = props.color ?? '#6bcf7f';
 
   return (
     <box flexDirection="row" gap={0}>
-      <text fg={barColor}>{'█'.repeat(filled)}</text>
-      <text>{'▒'.repeat(empty)}</text>
+      <text>[</text>
+      <text fg={barColor}>{'■'.repeat(filled)}</text>
+      <text>{' '.repeat(empty)}</text>
+      <text>]</text>
     </box>
   );
 }
