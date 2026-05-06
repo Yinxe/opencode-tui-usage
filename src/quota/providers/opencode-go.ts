@@ -48,9 +48,15 @@ export class OpenCodeGoQuotaProvider implements QuotaProvider {
         method: "GET",
         headers: {
           accept: "*/*",
-          "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+          "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,pt;q=0.5,pl;q=0.4",
           cookie: this.cookie,
           referer: `${this.baseUrl}/workspace/${this.workspaceId}/usage`,
+          "x-server-id": this.serviceId,
+          "x-server-instance": "server-fn:3",
+          priority: "u=1, i",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "same-origin",
+          "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
         },
       });
 
@@ -59,17 +65,20 @@ export class OpenCodeGoQuotaProvider implements QuotaProvider {
         return null;
       }
 
-      const data = (await response.json()) as OpenCodeGoResponse;
-      const usageData = data["server-fn:3"];
+      const text = await response.text();
 
-      if (!usageData || usageData.length < 4) {
-        console.error("[OpenCodeGoQuotaProvider] Invalid response structure");
+      const rollingMatch = text.match(/rollingUsage:\$R\[1\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      const weeklyMatch = text.match(/weeklyUsage:\$R\[2\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      const monthlyMatch = text.match(/monthlyUsage:\$R\[3\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+
+      if (!rollingMatch || !weeklyMatch || !monthlyMatch) {
+        console.error("[OpenCodeGoQuotaProvider] Failed to parse response:", text.substring(0, 200));
         return null;
       }
 
-      const rollingUsage = usageData[0].rollingUsage;
-      const weeklyUsage = usageData[1];
-      const monthlyUsage = usageData[2];
+      const rollingUsage = { status: rollingMatch[1], resetInSec: parseInt(rollingMatch[2], 10), usagePercent: parseInt(rollingMatch[3], 10) };
+      const weeklyUsage = { status: weeklyMatch[1], resetInSec: parseInt(weeklyMatch[2], 10), usagePercent: parseInt(weeklyMatch[3], 10) };
+      const monthlyUsage = { status: monthlyMatch[1], resetInSec: parseInt(monthlyMatch[2], 10), usagePercent: parseInt(monthlyMatch[3], 10) };
 
       return {
         rolling: {

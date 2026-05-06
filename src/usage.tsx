@@ -83,7 +83,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
   });
 
   return (
-    <box gap={0}>
+    <box flexDirection="column" gap={0}>
       <Title text="Usage" color="#6bcf7f" />
       {loading() ? (
         <text>Loading...</text>
@@ -91,9 +91,9 @@ export function UsageView(props: UsageViewProps): JSX.Element {
         <>
           <text fg="#888">Provider: {result()!.provider}</text>
           {result()!.quota.rolling ? (
-            <>
+            <box flexDirection="column" gap={0}>
               <box flexDirection="row" gap={1}>
-                <text>Rolling:</text>
+                <text fg="#6bcf7f">Rolling:</text>
                 <text>{result()!.quota.rolling!.usage}%</text>
                 <text fg="#888">reset {result()!.quota.rolling!.reset}</text>
               </box>
@@ -101,37 +101,37 @@ export function UsageView(props: UsageViewProps): JSX.Element {
                 value={result()!.quota.rolling!.usage}
                 color="#6bcf7f"
               />
-            </>
+            </box>
           ) : (
             <text fg="#888">Rolling: N/A</text>
           )}
           {result()!.quota.weekly ? (
-            <>
+            <box flexDirection="column" gap={0}>
               <box flexDirection="row" gap={1}>
-                <text>Weekly:</text>
+                <text fg="#ffd93d">Weekly:</text>
                 <text>{result()!.quota.weekly!.usage}%</text>
                 <text fg="#888">reset {result()!.quota.weekly!.reset}</text>
               </box>
               <ProgressBar
                 value={result()!.quota.weekly!.usage}
-                color="#6bcf7f"
+                color="#ffd93d"
               />
-            </>
+            </box>
           ) : (
             <text fg="#888">Weekly: N/A</text>
           )}
           {result()!.quota.monthly ? (
-            <>
+            <box flexDirection="column" gap={0}>
               <box flexDirection="row" gap={1}>
-                <text>Monthly:</text>
+                <text fg="#4da6ff">Monthly:</text>
                 <text>{result()!.quota.monthly!.usage}%</text>
                 <text fg="#888">reset {result()!.quota.monthly!.reset}</text>
               </box>
               <ProgressBar
                 value={result()!.quota.monthly!.usage}
-                color="#6bcf7f"
+                color="#4da6ff"
               />
-            </>
+            </box>
           ) : null}
           <text fg="#666">Refresh #{result()!.refreshCount}</text>
         </>
