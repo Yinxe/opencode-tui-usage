@@ -1,6 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from '@opencode-ai/plugin/tui';
-import { LabelValue, Title, ProgressBar } from './components.js';
+import { LabelValue, Title, ProgressBar } from './components.jsx';
 
 const id = 'opencode-tui-usage-plugin';
 

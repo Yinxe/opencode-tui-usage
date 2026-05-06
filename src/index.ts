@@ -1,4 +1,4 @@
-import tui from "./tui.js";
+import tui from "./tui.jsx";
 
 export { tui };
 export default tui;
