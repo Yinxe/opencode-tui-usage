@@ -1,10 +1,14 @@
 /** @jsxImportSource @opentui/solid */
-import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from '@opencode-ai/plugin/tui';
-import type { JSX } from 'solid-js';
-import { createSignal, createEffect, Show } from 'solid-js';
-import { LabelValue, Title, ProgressBar } from './components.jsx';
+import type {
+  TuiPlugin,
+  TuiPluginApi,
+  TuiPluginModule,
+} from "@opencode-ai/plugin/tui";
+import type { JSX } from "solid-js";
+import { createSignal, createEffect, Show } from "solid-js";
+import { LabelValue, Title, ProgressBar } from "./components.jsx";
 
-const id = 'opencode-tui-usage-plugin';
+const id = "opencode-tui-usage-plugin";
 
 interface SidebarData {
   sessionId: string;
@@ -20,16 +24,63 @@ interface SidebarData {
 }
 
 function formatPercent(value: number): string {
-  return value.toFixed(1) + '%';
+  return value.toFixed(1) + "%";
 }
 
 function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
   return num.toString();
 }
 
-function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.Element {
+interface UsageData {
+  rollingPercent: number;
+  rollingTime: string;
+  weeklyPercent: number;
+  weeklyTime: string;
+  monthlyPercent: number;
+  monthlyTime: string;
+}
+
+function UsageView(): JSX.Element {
+  const usage: UsageData = {
+    rollingPercent: 20,
+    rollingTime: "2h",
+    weeklyPercent: 10,
+    weeklyTime: "3d4h",
+    monthlyPercent: 1,
+    monthlyTime: "18d",
+  };
+
+  return (
+    <box gap={0}>
+      <Title text="Usage" color="#6bcf7f" />
+      <box flexDirection="row" gap={1}>
+        <text>Rolling:</text>
+        <text>{usage.rollingPercent}%</text>
+        <text fg="#888">{usage.rollingTime}</text>
+      </box>
+      <ProgressBar value={usage.rollingPercent} color="#6bcf7f" />
+      <box flexDirection="row" gap={1}>
+        <text>Weekly:</text>
+        <text>{usage.weeklyPercent}%</text>
+        <text fg="#888">{usage.weeklyTime}</text>
+      </box>
+      <ProgressBar value={usage.weeklyPercent} color="#6bcf7f" />
+      <box flexDirection="row" gap={1}>
+        <text>Monthly:</text>
+        <text>{usage.monthlyPercent}%</text>
+        <text fg="#888">{usage.monthlyTime}</text>
+      </box>
+      <ProgressBar value={usage.monthlyPercent} color="#6bcf7f" />
+    </box>
+  );
+}
+
+function SessionInfoView(props: {
+  api: TuiPluginApi;
+  sessionId: string;
+}): JSX.Element {
   const [data, setData] = createSignal<SidebarData | null>(null);
 
   createEffect(() => {
@@ -41,21 +92,27 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
     const vcs = props.api.state.vcs;
     const providers = props.api.state.provider;
 
-    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
-    const lastModelInfo = lastAssistantMsg && 'modelID' in lastAssistantMsg
-      ? { providerID: lastAssistantMsg.providerID, modelID: lastAssistantMsg.modelID }
-      : null;
+    const lastAssistantMsg = [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant");
+    const lastModelInfo =
+      lastAssistantMsg && "modelID" in lastAssistantMsg
+        ? {
+            providerID: lastAssistantMsg.providerID,
+            modelID: lastAssistantMsg.modelID,
+          }
+        : null;
 
     let contextPercent = 0;
     let contextUsed = 0;
     let contextLimit = 0;
 
-    if (lastAssistantMsg && 'tokens' in lastAssistantMsg) {
+    if (lastAssistantMsg && "tokens" in lastAssistantMsg) {
       const tokens = lastAssistantMsg.tokens;
       contextUsed = tokens.input || 0;
 
       for (const p of providers) {
-        const model = p.models[lastModelInfo?.modelID ?? ''];
+        const model = p.models[lastModelInfo?.modelID ?? ""];
         if (model) {
           contextLimit = model.limit.context;
           break;
@@ -70,8 +127,8 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
     setData({
       sessionId,
       branch: vcs?.branch,
-      provider: lastModelInfo?.providerID ?? 'None',
-      model: lastModelInfo?.modelID ?? 'None',
+      provider: lastModelInfo?.providerID ?? "None",
+      model: lastModelInfo?.modelID ?? "None",
       messageCount: messages.length,
       todoCount: todos.length,
       diffCount: diff.length,
@@ -83,6 +140,7 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
 
   return (
     <box gap={0}>
+      <UsageView />
       <Title text="Session Info" color="#6bcf7f" />
 
       <Show when={data()} fallback={<text>Loading...</text>}>
@@ -90,17 +148,50 @@ function SessionInfoView(props: { api: TuiPluginApi; sessionId: string }): JSX.E
           const d = data()!;
           return (
             <>
-              <LabelValue label="Session" value={d.sessionId.slice(0, 8) + '...'} labelColor="#6bcf7f" />
-              <LabelValue label="Branch" value={d.branch ?? 'N/A'} labelColor="#ffd93d" />
-              <LabelValue label="Provider" value={d.provider} labelColor="#ff6b6b" />
+              <LabelValue
+                label="Session"
+                value={d.sessionId.slice(0, 8) + "..."}
+                labelColor="#6bcf7f"
+              />
+              <LabelValue
+                label="Branch"
+                value={d.branch ?? "N/A"}
+                labelColor="#ffd93d"
+              />
+              <LabelValue
+                label="Provider"
+                value={d.provider}
+                labelColor="#ff6b6b"
+              />
               <LabelValue label="Model" value={d.model} labelColor="#74b9ff" />
-              <LabelValue label="Messages" value={d.messageCount} labelColor="#a29bfe" />
-              <LabelValue label="TODOs" value={d.todoCount} labelColor="#fd79a8" />
-              <LabelValue label="Changes" value={d.diffCount} labelColor="#00cec9" />
-              <LabelValue label="Context" value={formatPercent(d.contextPercent)} labelColor="#ff7675" />
-              <box flexDirection="row" gap={1}>
-                <ProgressBar value={d.contextPercent} color={d.contextPercent > 80 ? '#ff6b6b' : '#6bcf7f'} />
-                <text fg="#888">{formatNumber(d.contextUsed)}/{formatNumber(d.contextLimit)}</text>
+              <LabelValue
+                label="Messages"
+                value={d.messageCount}
+                labelColor="#a29bfe"
+              />
+              <LabelValue
+                label="TODOs"
+                value={d.todoCount}
+                labelColor="#fd79a8"
+              />
+              <LabelValue
+                label="Changes"
+                value={d.diffCount}
+                labelColor="#00cec9"
+              />
+              <LabelValue
+                label="Context"
+                value={formatPercent(d.contextPercent)}
+                labelColor="#ff7675"
+              />
+              <box flexDirection="row" gap={0}>
+                <ProgressBar
+                  value={d.contextPercent}
+                  color={d.contextPercent > 80 ? "#ff6b6b" : "#6bcf7f"}
+                />
+                <text fg="#888">
+                  {formatNumber(d.contextUsed)}/{formatNumber(d.contextLimit)}
+                </text>
               </box>
             </>
           );
