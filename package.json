@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "OpenCode TUI 额度显示插件 - 在侧边栏显示用量和额度信息",
   "type": "module",
-  "oc-plugin": ["tui"],
+  "oc-plugin": [
+    "tui"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -11,7 +13,7 @@
     },
     "./tui": {
       "types": "./dist/tui.d.ts",
-      "default": "./dist/tui.tsx"
+      "default": "./dist/tui.jsx"
     }
   },
   "files": [
