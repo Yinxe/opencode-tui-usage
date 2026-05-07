@@ -76,20 +76,51 @@ export function UsageView(props: UsageViewProps): JSX.Element {
   // 请求 ID 计数器，用于处理竞态条件
   let currentRequestId = 0;
 
-  // 主 effect：检测 provider 并获取额度数据
+  // 从 v1.0.0 恢复的刷新逻辑：只在 provider/model 组合变化时刷新
+  const doRefresh = () => {
+    const providerID = currentProvider();
+    if (!providerID) return;
+
+    const requestId = ++currentRequestId;
+
+    setLoading(true);
+    setFetchError(null);
+    const supported = props.quotaService.setActiveProvider(providerID);
+    setProviderSupported(supported);
+
+    if (!supported) {
+      setResult(null);
+      setLoading(false);
+      return;
+    }
+
+    props.quotaService.fetchQuota().then((data) => {
+      if (requestId !== currentRequestId) return;
+      if (data && data.quota) {
+        setResult(data);
+      } else {
+        setResult(null);
+      }
+      setLoading(false);
+    }).catch((error) => {
+      if (requestId !== currentRequestId) return;
+      console.error("[UsageView] Failed to fetch quota:", error);
+      setFetchError(String(error));
+      setResult(null);
+      setLoading(false);
+    });
+  };
+
+  // Effect 1: 检测 session 消息，提取 provider/model
   createEffect(() => {
     const sessionId = props.sessionId;
     const messages = props.api.state.session.messages(sessionId);
-    const requestId = ++currentRequestId;
 
-    // 无消息时重置状态
     if (!messages || messages.length === 0) {
       setCurrentProvider(null);
       setCurrentModel(null);
       setFetchError(null);
       setProviderSupported(false);
-      setResult(null);
-      setLoading(false);
       return;
     }
 
@@ -107,19 +138,14 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       setCurrentModel(null);
       setFetchError(null);
       setProviderSupported(false);
-      setResult(null);
-      setLoading(false);
       return;
     }
 
-    // 检查 providerID 类型是否正确
     if (!("providerID" in lastAssistantMsg) || typeof lastAssistantMsg.providerID !== "string") {
       setCurrentProvider(null);
       setCurrentModel(null);
       setFetchError(null);
       setProviderSupported(false);
-      setResult(null);
-      setLoading(false);
       return;
     }
 
@@ -128,46 +154,38 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       ? lastAssistantMsg.modelID
       : "";
 
-    setCurrentProvider(providerID);
-    setCurrentModel(modelID);
+    // 检查是否真的发生了变化
+    if (providerID !== currentProvider() || modelID !== currentModel()) {
+      setCurrentProvider(providerID);
+      setCurrentModel(modelID);
+    }
+  });
 
-    // 设置 Provider 并获取额度数据
-    setLoading(true);
-    setFetchError(null);
-    const supported = props.quotaService.setActiveProvider(providerID);
-    setProviderSupported(supported);
+  // Effect 2: 监听 provider 变化，触发额度获取
+  createEffect(() => {
+    const providerID = currentProvider();
 
-    if (!supported) {
+    if (!providerID) {
       setResult(null);
       setLoading(false);
+      setProviderSupported(false);
       return;
     }
 
-    props.quotaService.fetchQuota()
-      .then((data) => {
-        // 忽略过期响应（provider 已切换）
-        if (requestId !== currentRequestId) return;
-        if (data && data.quota) {
-          setResult(data);
-        } else {
-          setResult(null);
-        }
-        setLoading(false);
-      })
-      .catch((error) => {
-        if (requestId !== currentRequestId) return;
-        console.error("[UsageView] Failed to fetch quota:", error);
-        setFetchError(String(error));
-        setResult(null);
-        setLoading(false);
-      });
+    doRefresh();
   });
 
-  // 倒计时定时器 effect
+  // Effect 3: 倒计时定时器，归零时触发刷新
   createEffect(() => {
     setRefreshCountdown(REFRESH_INTERVAL);
     const id = setInterval(() => {
-      setRefreshCountdown((r) => (r <= 1 ? REFRESH_INTERVAL : r - 1));
+      setRefreshCountdown((r) => {
+        if (r <= 1) {
+          doRefresh();
+          return REFRESH_INTERVAL;
+        }
+        return r - 1;
+      });
     }, 1000);
 
     onCleanup(() => clearInterval(id));
