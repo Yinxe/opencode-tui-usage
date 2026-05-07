@@ -1,6 +1,6 @@
 {
   "name": "@yinx-in/opencode-tui-usage",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "OpenCode TUI 额度显示插件 - 在侧边栏显示用量和额度信息",
   "repository": "github:Yinxe/opencode-tui-usage",
   "type": "module",
