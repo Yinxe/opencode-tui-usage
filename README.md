@@ -19,20 +19,20 @@ OpenCode TUI 插件，在侧边栏显示用量和额度信息，支持多额度 
 ### 从 npm 安装（推荐）
 
 ```bash
-npm install @yinx-in/opencode-tui-usage
+npm install @yinxe/opencode-tui-usage
 ```
 
 ### 从 GitHub Packages 安装
 
 ```bash
 # 设置 registry
-npm config set @yinx-in:registry https://npm.pkg.github.com
+npm config set @yinxe:registry https://npm.pkg.github.com
 
 # 登录（需要 GitHub Personal Access Token）
 echo "YOUR_GITHUB_TOKEN" | npm login --registry=https://npm.pkg.github.com --username=YOUR_GITHUB_USERNAME --email=you@example.com
 
 # 安装
-npm install @yinx-in/opencode-tui-usage
+npm install @yinxe/opencode-tui-usage
 ```
 
 ### 配置插件
@@ -42,7 +42,7 @@ npm install @yinx-in/opencode-tui-usage
 ```json
 {
   "$schema": "https://opencode.ai/tui.json",
-  "plugin": ["@yinx-in/opencode-tui-usage"]
+  "plugin": ["@yinxe/opencode-tui-usage"]
 }
 ```
 
@@ -270,15 +270,15 @@ build → publish-npm + publish-github
      - Secret: 你的 npm access token
 
 3. **scoped 包配置**
-   - 包名 `@yinx-in/opencode-tui-usage` 已在 package.json 中配置
+   - 包名 `@yinxe/opencode-tui-usage` 已在 package.json 中配置
    - `publishConfig.registry` 指定发布到哪个 registry
 
 ### 发布地址
 
 | 平台 | 包名 | 地址 |
 |------|------|------|
-| npm | `@yinx-in/opencode-tui-usage` | https://www.npmjs.com/package/@yinx-in/opencode-tui-usage |
-| GitHub Packages | `@yinx-in/opencode-tui-usage` | https://github.com/Yinxe/opencode-tui-usage/packages |
+| npm | `@yinxe/opencode-tui-usage` | https://www.npmjs.com/package/@yinxe/opencode-tui-usage |
+| GitHub Packages | `@yinxe/opencode-tui-usage` | https://github.com/Yinxe/opencode-tui-usage/packages |
 
 ## License
 
