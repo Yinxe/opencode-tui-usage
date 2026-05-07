@@ -1,11 +1,14 @@
 {
   "name": "@yinx-in/opencode-tui-usage",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "OpenCode TUI 额度显示插件 - 在侧边栏显示用量和额度信息",
   "type": "module",
   "oc-plugin": [
     "tui"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

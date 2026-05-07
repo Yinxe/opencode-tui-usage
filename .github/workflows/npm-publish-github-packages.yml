@@ -4,8 +4,9 @@
 name: Github Package
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build:
@@ -18,7 +19,7 @@ jobs:
       - run: npm ci
       - run: npm test
 
-  publish-gpr:
+  publish-github-packages:
     needs: build
     runs-on: ubuntu-latest
     permissions:
