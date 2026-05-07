@@ -63,7 +63,10 @@ export function ContextUsageView(props: ContextUsageViewProps): JSX.Element {
 
         // 从 provider 列表中查找对应模型的 context limit
         const provider = props.api.state.provider.find((p) => p.id === msg.providerID);
-        const model = provider?.models[msg.modelID];
+        if (!provider) {
+          continue;
+        }
+        const model = provider.models[msg.modelID];
         limit = model?.limit?.context ?? 0;
       }
     }

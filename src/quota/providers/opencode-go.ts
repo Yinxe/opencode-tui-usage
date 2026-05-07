@@ -1,5 +1,6 @@
 import type { QuotaData, ProviderConfig } from "../types.js";
 import { QuotaProvider, resolveEnvVar } from "../provider.js";
+import { formatDurationCompact } from "../../formatters.js";
 
 /**
  * OpenCode Go 额度 Provider
@@ -77,28 +78,20 @@ export class OpenCodeGoQuotaProvider implements QuotaProvider {
       return {
         rolling: {
           usage: rollingUsage.usagePercent,
-          reset: this.formatDuration(rollingUsage.resetInSec),
+          reset: formatDurationCompact(rollingUsage.resetInSec),
         },
         weekly: {
           usage: weeklyUsage.usagePercent,
-          reset: this.formatDuration(weeklyUsage.resetInSec),
+          reset: formatDurationCompact(weeklyUsage.resetInSec),
         },
         // 如果 monthly 状态是 "unlimited" 则不显示
         monthly: monthlyUsage.status !== "unlimited"
-          ? { usage: monthlyUsage.usagePercent, reset: this.formatDuration(monthlyUsage.resetInSec) }
+          ? { usage: monthlyUsage.usagePercent, reset: formatDurationCompact(monthlyUsage.resetInSec) }
           : undefined,
       };
     } catch (error) {
       console.error("[OpenCodeGoQuotaProvider] Fetch failed:", error);
       return null;
     }
-  }
-
-  /** 格式化时间间隔为人类可读字符串 */
-  private formatDuration(seconds: number): string {
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
-    return `${Math.round(seconds / 86400)}d`;
   }
 }

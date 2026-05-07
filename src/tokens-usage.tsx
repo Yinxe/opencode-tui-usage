@@ -49,7 +49,6 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
     cacheRead: number;
     cacheWrite: number;
     cost: number;
-    currentInput: number;
   } | null>(null);
   const [isLoading, setIsLoading] = createSignal(true);
 
@@ -126,7 +125,6 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       cacheRead: totalCacheRead,
       cacheWrite: totalCacheWrite,
       cost: totalCost,
-      currentInput: 0,
     });
     setIsLoading(false);
   });

@@ -34,9 +34,13 @@ export function SessionInfoView(props: {
     const vcs = props.api.state.vcs;
 
     // 从后向前查找最后一个 assistant 消息以获取 provider 和 model 信息
-    const lastAssistantMsg = [...messages]
-      .reverse()
-      .find((m) => m.role === "assistant");
+    let lastAssistantMsg = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        lastAssistantMsg = messages[i];
+        break;
+      }
+    }
     const lastModelInfo =
       lastAssistantMsg && "modelID" in lastAssistantMsg
         ? {

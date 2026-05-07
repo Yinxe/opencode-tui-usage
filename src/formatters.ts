@@ -49,3 +49,14 @@ export function formatDuration(totalSeconds: number): string {
 export function formatPercent(value: number): string {
   return `${Math.round(value)}%`;
 }
+
+/**
+ * 格式化时间间隔为紧凑格式（用于额度显示）
+ * 例如：45 -> "45s", 90 -> "2m", 3600 -> "1h", 86400 -> "1d"
+ */
+export function formatDurationCompact(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
+  return `${Math.round(seconds / 86400)}d`;
+}
