@@ -161,7 +161,7 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
         </box>
       </Show>
 
-      <Show when={!isLoading() && stats().length > 1}>
+      <Show when={!isLoading() && stats().length > 0}>
         <For each={stats()}>
           {(stat) => (
             <box flexDirection="column" gap={0}>
