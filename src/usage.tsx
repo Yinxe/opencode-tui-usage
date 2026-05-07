@@ -63,82 +63,65 @@ export function UsageView(props: UsageViewProps): JSX.Element {
   const [providerSupported, setProviderSupported] = createSignal(true);
   const [fetchError, setFetchError] = createSignal<string | null>(null);
 
-  const doRefresh = () => {
-    const providerID = currentProvider();
-    if (!providerID) return;
-    setLoading(true);
-    setFetchError(null);
-    const supported = props.quotaService.setActiveProvider(providerID);
-    setProviderSupported(supported);
-    if (!supported) {
-      setLoading(false);
-      setResult(null);
-      return;
-    }
-    props.quotaService.fetchQuota().then((data) => {
-      if (data && data.quota) {
-        setResult(data);
-      } else {
-        setResult(null);
-      }
-      setLoading(false);
-    }).catch((error) => {
-      setFetchError(String(error));
-      setLoading(false);
-    });
-  };
+  // Track current request to handle race conditions
+  let currentRequestId = 0;
 
+  // Single effect that handles provider detection and quota fetching
   createEffect(() => {
     const sessionId = props.sessionId;
     const messages = props.api.state.session.messages(sessionId);
+    const requestId = ++currentRequestId;
 
+    // Reset state when no messages
     if (!messages || messages.length === 0) {
       setCurrentProvider(null);
       setCurrentModel(null);
       setFetchError(null);
       setProviderSupported(false);
+      setResult(null);
+      setLoading(false);
       return;
     }
 
-    const lastAssistantMsg = [...messages]
-      .reverse()
-      .find((m) => m.role === "assistant");
+    // Find last assistant message (iterate backwards to avoid array copy)
+    let lastAssistantMsg = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        lastAssistantMsg = messages[i];
+        break;
+      }
+    }
 
     if (!lastAssistantMsg) {
       setCurrentProvider(null);
       setCurrentModel(null);
       setFetchError(null);
       setProviderSupported(false);
+      setResult(null);
+      setLoading(false);
       return;
     }
 
-    if (!("providerID" in lastAssistantMsg)) {
+    // Check for providerID with proper type guard
+    if (!("providerID" in lastAssistantMsg) || typeof lastAssistantMsg.providerID !== "string") {
       setCurrentProvider(null);
       setCurrentModel(null);
       setFetchError(null);
       setProviderSupported(false);
+      setResult(null);
+      setLoading(false);
       return;
     }
 
     const providerID = lastAssistantMsg.providerID as string;
-    const modelID = "modelID" in lastAssistantMsg
-      ? (lastAssistantMsg.modelID as string)
+    const modelID = "modelID" in lastAssistantMsg && typeof lastAssistantMsg.modelID === "string"
+      ? lastAssistantMsg.modelID
       : "";
 
     setCurrentProvider(providerID);
     setCurrentModel(modelID);
-  });
 
-  createEffect(() => {
-    const providerID = currentProvider();
-
-    if (!providerID) {
-      setResult(null);
-      setLoading(false);
-      setProviderSupported(false);
-      return;
-    }
-
+    // Fetch quota
     setLoading(true);
     setFetchError(null);
     const supported = props.quotaService.setActiveProvider(providerID);
@@ -150,31 +133,31 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       return;
     }
 
-    props.quotaService.fetchQuota().then((data) => {
-      if (data && data.quota) {
-        setResult(data);
-      } else {
+    props.quotaService.fetchQuota()
+      .then((data) => {
+        // Ignore stale responses
+        if (requestId !== currentRequestId) return;
+        if (data && data.quota) {
+          setResult(data);
+        } else {
+          setResult(null);
+        }
+        setLoading(false);
+      })
+      .catch((error) => {
+        if (requestId !== currentRequestId) return;
+        console.error("[UsageView] Failed to fetch quota:", error);
+        setFetchError(String(error));
         setResult(null);
-      }
-      setLoading(false);
-    }).catch((error) => {
-      console.error("[UsageView] Failed to fetch quota:", error);
-      setFetchError(String(error));
-      setResult(null);
-      setLoading(false);
-    });
+        setLoading(false);
+      });
   });
 
+  // Interval for countdown display
   createEffect(() => {
     setRefreshCountdown(REFRESH_INTERVAL);
     const id = setInterval(() => {
-      setRefreshCountdown((r) => {
-        if (r <= 1) {
-          doRefresh();
-          return REFRESH_INTERVAL;
-        }
-        return r - 1;
-      });
+      setRefreshCountdown((r) => (r <= 1 ? REFRESH_INTERVAL : r - 1));
     }, 1000);
 
     onCleanup(() => clearInterval(id));

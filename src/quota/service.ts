@@ -63,9 +63,12 @@ export class QuotaService {
 
     this.refreshCount++;
     const quota = await this.activeProvider.fetchQuota();
+    if (!quota) {
+      return null;
+    }
     return {
       provider: this.activeProviderName!,
-      quota: quota!,
+      quota,
       refreshCount: this.refreshCount,
     };
   }
