@@ -23,11 +23,17 @@ interface CodingPlanResponse {
   };
 }
 
-export class MiniMaxCNQuotaProvider implements QuotaProvider {
-  readonly name = "minimax-cn-coding-plan";
-
+class MiniMaxQuotaProvider implements QuotaProvider {
+  readonly name: string;
   private apiKey: string | undefined;
-  private baseUrl = "https://www.minimaxi.com";
+  private baseUrl: string;
+  private logTag: string;
+
+  constructor(name: string, baseUrl: string) {
+    this.name = name;
+    this.baseUrl = baseUrl;
+    this.logTag = `[${name}]`;
+  }
 
   init(config: ProviderConfig, _credentials: Record<string, unknown>): void {
     const apiKeyRaw = config.apiKey as string | undefined;
@@ -36,7 +42,7 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
 
   async fetchQuota(): Promise<QuotaData | null> {
     if (!this.apiKey) {
-      console.warn("[MiniMaxCNQuotaProvider] Missing apiKey");
+      console.warn(`${this.logTag} Missing apiKey`);
       return null;
     }
 
@@ -53,14 +59,14 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
       );
 
       if (!response.ok) {
-        console.error(`[MiniMaxCNQuotaProvider] API error: ${response.status}`);
+        console.error(`${this.logTag} API error: ${response.status}`);
         return null;
       }
 
       const data = (await response.json()) as CodingPlanResponse;
 
       if (data.base_resp?.status_code !== 0) {
-        console.error(`[MiniMaxCNQuotaProvider] API error: ${data.base_resp?.status_msg}`);
+        console.error(`${this.logTag} API error: ${data.base_resp?.status_msg}`);
         return null;
       }
 
@@ -69,13 +75,13 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
       );
 
       if (codingPlanModels.length === 0) {
-        console.warn("[MiniMaxCNQuotaProvider] No coding plan models found");
+        console.warn(`${this.logTag} No coding plan models found`);
         return null;
       }
 
       return this.mapResponseToQuotaData(codingPlanModels);
     } catch (error) {
-      console.error("[MiniMaxCNQuotaProvider] Fetch failed:", error);
+      console.error(`${this.logTag} Fetch failed:`, error);
       return null;
     }
   }
@@ -135,5 +141,17 @@ export class MiniMaxCNQuotaProvider implements QuotaProvider {
     if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
     if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
     return `${Math.round(seconds / 86400)}d`;
+  }
+}
+
+export class MiniMaxCNQuotaProvider extends MiniMaxQuotaProvider {
+  constructor() {
+    super("minimax-cn-coding-plan", "https://www.minimaxi.com");
+  }
+}
+
+export class MiniMaxIOQuotaProvider extends MiniMaxQuotaProvider {
+  constructor() {
+    super("minimax-coding-plan", "https://api.minimax.io");
   }
 }
