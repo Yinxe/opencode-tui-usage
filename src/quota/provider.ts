@@ -6,8 +6,6 @@ export interface QuotaProvider {
   init(config: ProviderConfig, credentials: Record<string, unknown>): void;
 
   fetchQuota(): Promise<QuotaData | null>;
-
-  resolveEnvVar(value: string | undefined): string | undefined;
 }
 
 export const resolveEnvVar = (value: string | undefined): string | undefined => {

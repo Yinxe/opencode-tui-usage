@@ -1,21 +1,6 @@
 import type { QuotaData, ProviderConfig } from "../types.js";
 import { QuotaProvider, resolveEnvVar } from "../provider.js";
 
-interface OpenCodeGoUsage {
-  status: string;
-  resetInSec: number;
-  usagePercent: number;
-}
-
-interface OpenCodeGoResponse {
-  "server-fn:3": [
-    { mine: boolean; useBalance: boolean; rollingUsage: OpenCodeGoUsage },
-    { status: string; resetInSec: number; usagePercent: number },
-    { status: string; resetInSec: number; usagePercent: number },
-    { status: string; resetInSec: number; usagePercent: number }
-  ];
-}
-
 export class OpenCodeGoQuotaProvider implements QuotaProvider {
   readonly name = "opencode-go";
 
@@ -97,10 +82,6 @@ export class OpenCodeGoQuotaProvider implements QuotaProvider {
       console.error("[OpenCodeGoQuotaProvider] Fetch failed:", error);
       return null;
     }
-  }
-
-  resolveEnvVar(value: string | undefined): string | undefined {
-    return resolveEnvVar(value);
   }
 
   private formatDuration(seconds: number): string {

@@ -86,10 +86,6 @@ class MiniMaxQuotaProvider implements QuotaProvider {
     }
   }
 
-  resolveEnvVar(value: string | undefined): string | undefined {
-    return resolveEnvVar(value);
-  }
-
   private mapResponseToQuotaData(models: ModelRemainItem[]): QuotaData {
     let totalRollingAvailable = 0;
     let totalRollingLimit = 0;
