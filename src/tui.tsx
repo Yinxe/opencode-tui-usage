@@ -3,6 +3,7 @@ import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { UsageView } from "./usage.jsx";
 import { SessionInfoView } from "./session-info.jsx";
 import { TokensUsageView } from "./tokens-usage.jsx";
+import { ContextUsageView } from "./context-usage.jsx";
 import { QuotaService } from "./quota/service.js";
 
 const id = "opencode-tui-usage-plugin";
@@ -22,6 +23,10 @@ const tui: TuiPlugin = async (api) => {
               sessionId={_props.session_id}
             />
             <SessionInfoView api={api} sessionId={_props.session_id} />
+            <ContextUsageView
+              api={api}
+              sessionId={_props.session_id}
+            />
             <TokensUsageView
               api={api}
               sessionId={_props.session_id}

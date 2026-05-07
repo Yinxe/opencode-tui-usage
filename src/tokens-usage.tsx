@@ -2,10 +2,11 @@
 import type { JSX } from "solid-js";
 import { createSignal, createEffect, Show, For } from "solid-js";
 import { Title, ProgressBar } from "./components.jsx";
+import { formatNumber, formatCost } from "./formatters.js";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { AssistantMessage } from "@opencode-ai/sdk/v2";
 
-interface TokenStats {
+export interface TokenStats {
   providerID: string;
   modelID: string;
   totalCost: number;
@@ -14,40 +15,12 @@ interface TokenStats {
   reasoning: number;
   cacheRead: number;
   cacheWrite: number;
-  contextTokens: number;
-  contextLimit: number;
   messageCount: number;
 }
 
-function formatNumber(n: number): string {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
-  if (n >= 1000) return (n / 1000).toFixed(1) + "K";
-  return n.toString();
-}
-
-function formatCost(cost: number): string {
-  if (cost === 0) return "$0";
-  const formatted = cost.toFixed(6).replace(/\.?0+$/, "");
-  return "$" + formatted;
-}
-
-function getContextLimit(api: TuiPluginApi, providerID: string, modelID: string): number {
-  const providers = api.state.provider;
-  const provider = providers.find((p) => p.id === providerID);
-  if (!provider) return 0;
-  const model = provider.models[modelID];
-  if (!model) return 0;
-  return model.limit?.context ?? 0;
-}
-
-function assistantContextTokenTotal(msg: AssistantMessage): number {
-  return (
-    msg.tokens.input +
-    msg.tokens.output +
-    msg.tokens.reasoning +
-    msg.tokens.cache.read +
-    msg.tokens.cache.write
-  );
+export interface TokensUsageViewProps {
+  api: TuiPluginApi;
+  sessionId: string;
 }
 
 function InlineMetric(props: { label: string; value: string; color: string }) {
@@ -60,11 +33,6 @@ function InlineMetric(props: { label: string; value: string; color: string }) {
   );
 }
 
-export interface TokensUsageViewProps {
-  api: TuiPluginApi;
-  sessionId: string;
-}
-
 export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
   const [stats, setStats] = createSignal<TokenStats[]>([]);
   const [totals, setTotals] = createSignal<{
@@ -73,7 +41,6 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
     reasoning: number;
     cacheRead: number;
     cacheWrite: number;
-    contextTokens: number;
     cost: number;
     currentInput: number;
   } | null>(null);
@@ -92,8 +59,6 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
 
     const grouped = new Map<string, TokenStats>();
     let lastInput = 0;
-    let latestContextTokens = 0;
-    let latestContextTokensTime = -Infinity;
 
     messages.forEach((msg) => {
       if (msg.role !== "assistant") return;
@@ -104,19 +69,15 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       const key = `${assistantMsg.providerID || "unknown"}::${assistantMsg.modelID || "unknown"}`;
 
       if (!grouped.has(key)) {
-        const pid = assistantMsg.providerID || "unknown";
-        const mid = assistantMsg.modelID || "unknown";
         grouped.set(key, {
-          providerID: pid,
-          modelID: mid,
+          providerID: assistantMsg.providerID || "unknown",
+          modelID: assistantMsg.modelID || "unknown",
           totalCost: 0,
           input: 0,
           output: 0,
           reasoning: 0,
           cacheRead: 0,
           cacheWrite: 0,
-          contextTokens: 0,
-          contextLimit: getContextLimit(props.api, pid, mid),
           messageCount: 0,
         });
       }
@@ -128,16 +89,8 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       stat.reasoning += assistantMsg.tokens.reasoning || 0;
       stat.cacheRead += assistantMsg.tokens.cache?.read || 0;
       stat.cacheWrite += assistantMsg.tokens.cache?.write || 0;
-      stat.contextTokens = assistantContextTokenTotal(assistantMsg);
       stat.messageCount += 1;
       lastInput = assistantMsg.tokens.input || 0;
-
-      const msgTime = assistantMsg.time.completed ?? assistantMsg.time.created;
-      const msgContextTokens = assistantContextTokenTotal(assistantMsg);
-      if (msgContextTokens > 0 && msgTime > latestContextTokensTime) {
-        latestContextTokensTime = msgTime;
-        latestContextTokens = msgContextTokens;
-      }
     });
 
     let totalInput = 0,
@@ -163,7 +116,6 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       reasoning: totalReasoning,
       cacheRead: totalCacheRead,
       cacheWrite: totalCacheWrite,
-      contextTokens: latestContextTokens,
       cost: totalCost,
       currentInput: lastInput,
     });
@@ -195,20 +147,6 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
           <box flexDirection="row" gap={2}>
             <InlineMetric label="Cost" value={formatCost(totals()?.cost ?? 0)} color="#ffd93d" />
           </box>
-          <Show when={stats()[0]?.contextLimit > 0}>
-            <box flexDirection="row" gap={2}>
-              <InlineMetric
-                label="Context"
-                value={`${formatNumber(totals()?.contextTokens ?? 0)} / ${formatNumber(stats()[0]?.contextLimit ?? 0)} (${Math.round(((totals()?.contextTokens ?? 0) / (stats()[0]?.contextLimit ?? 1)) * 100)}%)`}
-                color="#a29bfe"
-              />
-            </box>
-            <ProgressBar
-              value={Math.min(100, Math.round(((totals()?.contextTokens ?? 0) / (stats()[0]?.contextLimit ?? 1)) * 100))}
-              color="#a29bfe"
-              width={20}
-            />
-          </Show>
         </box>
       </Show>
 

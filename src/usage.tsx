@@ -1,26 +1,12 @@
 /** @jsxImportSource @opentui/solid */
 import type { JSX } from "solid-js";
-import { createSignal, createEffect, onCleanup } from "solid-js";
+import { createSignal, createEffect, onCleanup, For } from "solid-js";
 import { Title, ProgressBar } from "./components.jsx";
+import { formatDuration } from "./formatters.js";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { QuotaResult } from "./quota/types.js";
 
 const REFRESH_INTERVAL = 60;
-
-function formatDuration(totalSeconds: number): string {
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
-  }
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  }
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
 
 export interface UsageViewProps {
   quotaService: {
@@ -50,24 +36,8 @@ function EmptyState(props: EmptyStateProps): JSX.Element {
   if (!props.supported) {
     return (
       <box flexDirection="column" gap={0}>
-        <text fg="#ffd93d">Provider not supported</text>
-        <text fg="#888">
-          Adapter for "{props.provider}" not found.
-        </text>
-        {props.registeredProviders.length > 0 ? (
-          <text fg="#888">
-            Registered: {props.registeredProviders.join(", ")}
-          </text>
-        ) : null}
-        {props.configuredProviders.length > 0 ? (
-          <text fg="#888">
-            Configured: {props.configuredProviders.join(", ")}
-          </text>
-        ) : (
-          <text fg="#888">
-            Configure provider in usage.provider.json
-          </text>
-        )}
+        <text fg="#ff6b6b">not support provider: {props.provider}</text>
+        <text fg="#74b9ff">github.com/Yinxe/opencode-tui-usage</text>
       </box>
     );
   }
@@ -212,7 +182,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
 
   return (
     <box flexDirection="column" gap={0}>
-      <Title text="Usage" color="#6bcf7f" />
+      <Title text="Usage Quota" color="#6bcf7f" />
       <text fg="#888">Provider: {currentProvider() ?? "Unknown"}</text>
       {loading() ? (
         <>
