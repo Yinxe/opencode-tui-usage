@@ -119,14 +119,30 @@ this.registerProvider(new XXXQuotaProvider());
 
 ## 本地测试
 
-在 `~/.config/opencode/tui.json` 中添加插件路径：
+从 GitHub Packages 安装：
+```bash
+npm config set @yinx-in:registry https://npm.pkg.github.com
+npm install @yinx-in/opencode-tui-usage
+```
 
+或使用本地路径：
 ```json
 {
   "$schema": "https://opencode.ai/tui.json",
   "plugin": ["/absolute/path/to/opencode-tui-usage-plugin"]
 }
 ```
+
+## 版本管理与发版
+
+```bash
+npm version patch  # 0.0.1 → 0.0.2（自动创建 tag）
+git push origin v0.0.2  # 推送 tag 触发 CI/CD
+```
+
+推送 tag 触发 CI/CD，**同时发布到 npm 和 GitHub Packages**：
+- `publish-npm` → npmjs.org（需配置 `npm_token` secret）
+- `publish-github` → GitHub Packages（使用内置 `GITHUB_TOKEN`）
 
 ## 调试
 

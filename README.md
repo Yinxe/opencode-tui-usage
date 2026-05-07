@@ -14,7 +14,39 @@ OpenCode TUI 插件，在侧边栏显示用量和额度信息，支持多额度 
 
 ## 安装
 
-### 本地安装
+包发布在 npm 和 GitHub Packages，推荐从 npm 安装。
+
+### 从 npm 安装（推荐）
+
+```bash
+npm install @yinx-in/opencode-tui-usage
+```
+
+### 从 GitHub Packages 安装
+
+```bash
+# 设置 registry
+npm config set @yinx-in:registry https://npm.pkg.github.com
+
+# 登录（需要 GitHub Personal Access Token）
+echo "YOUR_GITHUB_TOKEN" | npm login --registry=https://npm.pkg.github.com --username=YOUR_GITHUB_USERNAME --email=you@example.com
+
+# 安装
+npm install @yinx-in/opencode-tui-usage
+```
+
+### 配置插件
+
+安装后，在 `~/.config/opencode/tui.json` 中添加：
+
+```json
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "plugin": ["@yinx-in/opencode-tui-usage"]
+}
+```
+
+### 本地安装（开发）
 
 1. 克隆或下载此项目到本地
 2. 在 `~/.config/opencode/tui.json` 中添加插件路径：
@@ -193,6 +225,60 @@ cat ~/.local/share/opencode/log/$(ls -t ~/.local/share/opencode/log/ | head -1) 
 - **Solid.js** - 响应式 UI 框架
 - **@opentui/solid** - TUI 组件库（`<box>`, `<text>` 等）
 - **TypeScript** - 类型安全
+
+## CI/CD 自动化发版
+
+本项目使用 GitHub Actions 实现自动化发版。推送 `v*` 格式的 tag 后，**同时发布到 npm 和 GitHub Packages**。
+
+### 发布流程
+
+使用 `npm version` 管理版本号（会自动创建 tag）：
+
+```bash
+# 更新版本并创建 tag
+npm version patch  # 0.0.1 → 0.0.2
+npm version minor  # 0.0.1 → 0.1.0
+npm version major  # 0.0.1 → 1.0.0
+
+# 推送 tag 触发 CI/CD
+git push origin v0.0.3
+```
+
+### 自动触发的工作流
+
+推送 tag 后，以下 job 会自动执行：
+
+```
+build → publish-npm + publish-github
+```
+
+| Job | 目标 | 依赖 |
+|-----|------|------|
+| `build` | 安装依赖、构建项目、运行测试 | - |
+| `publish-npm` | 发布到 [npm registry](https://www.npmjs.com/) | build |
+| `publish-github` | 发布到 [GitHub Packages](https://github.com/Yinxe/opencode-tui-usage/packages) | build |
+
+### 首次发版配置
+
+1. **GitHub Packages 认证**
+   - 无需额外配置，使用内置 `GITHUB_TOKEN`
+
+2. **npm 认证**（如需发布到 npm）
+   - 在 [npm.npmjs.com](https://www.npmjs.com/) 创建 Access Token
+   - 在 GitHub 仓库 Settings → Secrets and variables → Actions 添加 secret：
+     - Name: `npm_token`
+     - Secret: 你的 npm access token
+
+3. **scoped 包配置**
+   - 包名 `@yinx-in/opencode-tui-usage` 已在 package.json 中配置
+   - `publishConfig.registry` 指定发布到哪个 registry
+
+### 发布地址
+
+| 平台 | 包名 | 地址 |
+|------|------|------|
+| npm | `@yinx-in/opencode-tui-usage` | https://www.npmjs.com/package/@yinx-in/opencode-tui-usage |
+| GitHub Packages | `@yinx-in/opencode-tui-usage` | https://github.com/Yinxe/opencode-tui-usage/packages |
 
 ## License
 
