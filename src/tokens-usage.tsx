@@ -1,7 +1,7 @@
 /** @jsxImportSource @opentui/solid */
 import type { JSX } from "solid-js";
 import { createSignal, createEffect, Show, For } from "solid-js";
-import { Title } from "./components.jsx";
+import { Title, ProgressBar } from "./components.jsx";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { AssistantMessage } from "@opencode-ai/sdk/v2";
 
@@ -133,9 +133,10 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       lastInput = assistantMsg.tokens.input || 0;
 
       const msgTime = assistantMsg.time.completed ?? assistantMsg.time.created;
-      if (msgTime > latestContextTokensTime) {
+      const msgContextTokens = assistantContextTokenTotal(assistantMsg);
+      if (msgContextTokens > 0 && msgTime > latestContextTokensTime) {
         latestContextTokensTime = msgTime;
-        latestContextTokens = assistantContextTokenTotal(assistantMsg);
+        latestContextTokens = msgContextTokens;
       }
     });
 
@@ -202,6 +203,11 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
                 color="#a29bfe"
               />
             </box>
+            <ProgressBar
+              value={Math.min(100, Math.round(((totals()?.contextTokens ?? 0) / (stats()[0]?.contextLimit ?? 1)) * 100))}
+              color="#a29bfe"
+              width={20}
+            />
           </Show>
         </box>
       </Show>
