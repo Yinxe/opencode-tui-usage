@@ -43,6 +43,18 @@ export class QuotaService {
     return this.activeProviderName;
   }
 
+  isProviderSupported(providerName: string): boolean {
+    return this.providers.has(providerName);
+  }
+
+  getRegisteredProviderNames(): string[] {
+    return Array.from(this.providers.keys());
+  }
+
+  getConfiguredProviderNames(): string[] {
+    return Object.keys(this.providerRegistry);
+  }
+
   async fetchQuota(): Promise<QuotaResult | null> {
     if (!this.activeProvider) {
       return null;

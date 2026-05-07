@@ -26,9 +26,62 @@ export interface UsageViewProps {
   quotaService: {
     fetchQuota(): Promise<QuotaResult | null>;
     setActiveProvider(providerName: string): boolean;
+    isProviderSupported(providerName: string): boolean;
+    getRegisteredProviderNames(): string[];
+    getConfiguredProviderNames(): string[];
   };
   api: TuiPluginApi;
   sessionId: string;
+}
+
+interface EmptyStateProps {
+  provider: string | null;
+  supported: boolean;
+  error: string | null;
+  registeredProviders: string[];
+  configuredProviders: string[];
+}
+
+function EmptyState(props: EmptyStateProps): JSX.Element {
+  if (!props.provider) {
+    return <text fg="#888">No LLM activity detected</text>;
+  }
+
+  if (!props.supported) {
+    return (
+      <box flexDirection="column" gap={0}>
+        <text fg="#ffd93d">Provider not supported</text>
+        <text fg="#888">
+          Adapter for "{props.provider}" not found.
+        </text>
+        {props.registeredProviders.length > 0 ? (
+          <text fg="#888">
+            Registered: {props.registeredProviders.join(", ")}
+          </text>
+        ) : null}
+        {props.configuredProviders.length > 0 ? (
+          <text fg="#888">
+            Configured: {props.configuredProviders.join(", ")}
+          </text>
+        ) : (
+          <text fg="#888">
+            Configure provider in usage.provider.json
+          </text>
+        )}
+      </box>
+    );
+  }
+
+  if (props.error) {
+    return (
+      <box flexDirection="column" gap={0}>
+        <text fg="#ff6666">Error fetching quota</text>
+        <text fg="#888">{props.error}</text>
+      </box>
+    );
+  }
+
+  return <text fg="#888">No quota data available</text>;
 }
 
 export function UsageView(props: UsageViewProps): JSX.Element {
@@ -37,18 +90,30 @@ export function UsageView(props: UsageViewProps): JSX.Element {
   const [currentProvider, setCurrentProvider] = createSignal<string | null>(null);
   const [currentModel, setCurrentModel] = createSignal<string | null>(null);
   const [refreshCountdown, setRefreshCountdown] = createSignal(REFRESH_INTERVAL);
+  const [providerSupported, setProviderSupported] = createSignal(true);
+  const [fetchError, setFetchError] = createSignal<string | null>(null);
 
   const doRefresh = () => {
     const providerID = currentProvider();
     if (!providerID) return;
     setLoading(true);
-    props.quotaService.setActiveProvider(providerID);
+    setFetchError(null);
+    const supported = props.quotaService.setActiveProvider(providerID);
+    setProviderSupported(supported);
+    if (!supported) {
+      setLoading(false);
+      setResult(null);
+      return;
+    }
     props.quotaService.fetchQuota().then((data) => {
       if (data && data.quota) {
         setResult(data);
+      } else {
+        setResult(null);
       }
       setLoading(false);
-    }).catch(() => {
+    }).catch((error) => {
+      setFetchError(String(error));
       setLoading(false);
     });
   };
@@ -60,6 +125,8 @@ export function UsageView(props: UsageViewProps): JSX.Element {
     if (!messages || messages.length === 0) {
       setCurrentProvider(null);
       setCurrentModel(null);
+      setFetchError(null);
+      setProviderSupported(false);
       return;
     }
 
@@ -70,12 +137,16 @@ export function UsageView(props: UsageViewProps): JSX.Element {
     if (!lastAssistantMsg) {
       setCurrentProvider(null);
       setCurrentModel(null);
+      setFetchError(null);
+      setProviderSupported(false);
       return;
     }
 
     if (!("providerID" in lastAssistantMsg)) {
       setCurrentProvider(null);
       setCurrentModel(null);
+      setFetchError(null);
+      setProviderSupported(false);
       return;
     }
 
@@ -90,16 +161,24 @@ export function UsageView(props: UsageViewProps): JSX.Element {
 
   createEffect(() => {
     const providerID = currentProvider();
-    const modelID = currentModel();
 
     if (!providerID) {
       setResult(null);
       setLoading(false);
+      setProviderSupported(false);
       return;
     }
 
     setLoading(true);
-    props.quotaService.setActiveProvider(providerID);
+    setFetchError(null);
+    const supported = props.quotaService.setActiveProvider(providerID);
+    setProviderSupported(supported);
+
+    if (!supported) {
+      setResult(null);
+      setLoading(false);
+      return;
+    }
 
     props.quotaService.fetchQuota().then((data) => {
       if (data && data.quota) {
@@ -110,6 +189,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       setLoading(false);
     }).catch((error) => {
       console.error("[UsageView] Failed to fetch quota:", error);
+      setFetchError(String(error));
       setResult(null);
       setLoading(false);
     });
@@ -213,7 +293,13 @@ export function UsageView(props: UsageViewProps): JSX.Element {
           <text fg="#888">{formatDuration(refreshCountdown())} Refresh #{result()!.refreshCount}</text>
         </>
       ) : (
-        <text>No data</text>
+        <EmptyState
+          provider={currentProvider()}
+          supported={providerSupported()}
+          error={fetchError()}
+          registeredProviders={props.quotaService.getRegisteredProviderNames()}
+          configuredProviders={props.quotaService.getConfiguredProviderNames()}
+        />
       )}
     </box>
   );
