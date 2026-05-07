@@ -4,6 +4,7 @@ import type { JSX } from "solid-js";
 import { createSignal, createEffect, Show } from "solid-js";
 import { LabelValue } from "./components.jsx";
 
+/** 会话信息数据结构 */
 interface SessionData {
   sessionId: string;
   branch: string | undefined;
@@ -14,6 +15,10 @@ interface SessionData {
   diffCount: number;
 }
 
+/**
+ * Session Info 视图组件
+ * 显示当前会话的基本信息：Session ID、Branch、Provider、Model、消息数等
+ */
 export function SessionInfoView(props: {
   api: TuiPluginApi;
   sessionId: string;
@@ -28,6 +33,7 @@ export function SessionInfoView(props: {
     const diff = props.api.state.session.diff(sessionId);
     const vcs = props.api.state.vcs;
 
+    // 从后向前查找最后一个 assistant 消息以获取 provider 和 model 信息
     const lastAssistantMsg = [...messages]
       .reverse()
       .find((m) => m.role === "assistant");

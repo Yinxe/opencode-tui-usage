@@ -11,6 +11,15 @@ export interface ContextUsageViewProps {
   sessionId: string;
 }
 
+/**
+ * Context Usage 视图组件
+ * 显示当前会话最新一条 assistant 消息的 context tokens 使用情况
+ *
+ * Context Tokens 计算方式：
+ * contextTokens = input + output + reasoning + cache.read + cache.write
+ *
+ * 注意：AI 回复期间 tokens 可能为 0，此时跳过该消息
+ */
 export function ContextUsageView(props: ContextUsageViewProps): JSX.Element {
   const [contextData, setContextData] = createSignal<{
     tokens: number;
@@ -31,9 +40,11 @@ export function ContextUsageView(props: ContextUsageViewProps): JSX.Element {
     let latestTime = -Infinity;
     let limit = 0;
 
+    // 遍历所有消息，找到最新一条有有效 tokens 的 assistant 消息
     for (const msg of messages) {
       if (msg.role !== "assistant" || !msg.tokens) continue;
 
+      // 计算总 tokens（input + output + reasoning + cache）
       const tokens =
         msg.tokens.input +
         msg.tokens.output +
@@ -41,13 +52,16 @@ export function ContextUsageView(props: ContextUsageViewProps): JSX.Element {
         msg.tokens.cache.read +
         msg.tokens.cache.write;
 
+      // AI 回复期间 tokens 可能为 0，跳过
       if (tokens <= 0) continue;
 
+      // 使用消息完成时间或创建时间来判断新旧
       const time = msg.time.completed ?? msg.time.created;
       if (time > latestTime) {
         latestTime = time;
         latestTokens = tokens;
 
+        // 从 provider 列表中查找对应模型的 context limit
         const provider = props.api.state.provider.find((p) => p.id === msg.providerID);
         const model = provider?.models[msg.modelID];
         limit = model?.limit?.context ?? 0;

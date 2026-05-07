@@ -6,6 +6,7 @@ import { formatNumber, formatCost } from "./formatters.js";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { AssistantMessage } from "@opencode-ai/sdk/v2";
 
+/** 单个模型的 token 统计 */
 export interface TokenStats {
   providerID: string;
   modelID: string;
@@ -23,6 +24,7 @@ export interface TokensUsageViewProps {
   sessionId: string;
 }
 
+/** 内联指标组件：显示 "标签: 值" 格式 */
 function InlineMetric(props: { label: string; value: string; color: string }) {
   return (
     <box flexDirection="row" gap={0}>
@@ -33,6 +35,11 @@ function InlineMetric(props: { label: string; value: string; color: string }) {
   );
 }
 
+/**
+ * Tokens Usage 视图组件
+ * 统计当前会话中所有 assistant 消息的 token 消耗
+ * 按模型分组显示累计数据
+ */
 export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
   const [stats, setStats] = createSignal<TokenStats[]>([]);
   const [totals, setTotals] = createSignal<{
@@ -57,8 +64,8 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       return;
     }
 
+    // 按 (providerID, modelID) 分组统计
     const grouped = new Map<string, TokenStats>();
-    let lastInput = 0;
 
     messages.forEach((msg) => {
       if (msg.role !== "assistant") return;
@@ -66,6 +73,7 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       const assistantMsg = msg as AssistantMessage;
       if (!assistantMsg.tokens) return;
 
+      // 以 providerID::modelID 作为分组 key
       const key = `${assistantMsg.providerID || "unknown"}::${assistantMsg.modelID || "unknown"}`;
 
       if (!grouped.has(key)) {
@@ -82,6 +90,7 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
         });
       }
 
+      // 累加各项数据
       const stat = grouped.get(key)!;
       stat.totalCost += assistantMsg.cost || 0;
       stat.input += assistantMsg.tokens.input || 0;
@@ -90,9 +99,9 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       stat.cacheRead += assistantMsg.tokens.cache?.read || 0;
       stat.cacheWrite += assistantMsg.tokens.cache?.write || 0;
       stat.messageCount += 1;
-      lastInput = assistantMsg.tokens.input || 0;
     });
 
+    // 计算总计
     let totalInput = 0,
       totalOutput = 0,
       totalReasoning = 0;
@@ -117,7 +126,7 @@ export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
       cacheRead: totalCacheRead,
       cacheWrite: totalCacheWrite,
       cost: totalCost,
-      currentInput: lastInput,
+      currentInput: 0,
     });
     setIsLoading(false);
   });

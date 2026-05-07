@@ -1,11 +1,12 @@
 /** @jsxImportSource @opentui/solid */
 import type { JSX } from "solid-js";
-import { createSignal, createEffect, onCleanup, For } from "solid-js";
+import { createSignal, createEffect, onCleanup } from "solid-js";
 import { Title, ProgressBar } from "./components.jsx";
 import { formatDuration } from "./formatters.js";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { QuotaResult } from "./quota/types.js";
 
+/** 额度刷新间隔（秒） */
 const REFRESH_INTERVAL = 60;
 
 export interface UsageViewProps {
@@ -20,6 +21,7 @@ export interface UsageViewProps {
   sessionId: string;
 }
 
+/** 空状态显示的属性 */
 interface EmptyStateProps {
   provider: string | null;
   supported: boolean;
@@ -28,6 +30,10 @@ interface EmptyStateProps {
   configuredProviders: string[];
 }
 
+/**
+ * 空状态组件
+ * 根据不同情况显示对应的提示信息
+ */
 function EmptyState(props: EmptyStateProps): JSX.Element {
   if (!props.provider) {
     return <text fg="#888">No LLM activity detected</text>;
@@ -54,6 +60,10 @@ function EmptyState(props: EmptyStateProps): JSX.Element {
   return <text fg="#888">No quota data available</text>;
 }
 
+/**
+ * Usage Quota 视图组件
+ * 显示 Rolling/Weekly/Monthly 三种维度的额度使用情况
+ */
 export function UsageView(props: UsageViewProps): JSX.Element {
   const [result, setResult] = createSignal<QuotaResult | null>(null);
   const [loading, setLoading] = createSignal(true);
@@ -63,16 +73,16 @@ export function UsageView(props: UsageViewProps): JSX.Element {
   const [providerSupported, setProviderSupported] = createSignal(true);
   const [fetchError, setFetchError] = createSignal<string | null>(null);
 
-  // Track current request to handle race conditions
+  // 请求 ID 计数器，用于处理竞态条件
   let currentRequestId = 0;
 
-  // Single effect that handles provider detection and quota fetching
+  // 主 effect：检测 provider 并获取额度数据
   createEffect(() => {
     const sessionId = props.sessionId;
     const messages = props.api.state.session.messages(sessionId);
     const requestId = ++currentRequestId;
 
-    // Reset state when no messages
+    // 无消息时重置状态
     if (!messages || messages.length === 0) {
       setCurrentProvider(null);
       setCurrentModel(null);
@@ -83,7 +93,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       return;
     }
 
-    // Find last assistant message (iterate backwards to avoid array copy)
+    // 从后向前查找最后一个 assistant 消息
     let lastAssistantMsg = null;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") {
@@ -102,7 +112,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       return;
     }
 
-    // Check for providerID with proper type guard
+    // 检查 providerID 类型是否正确
     if (!("providerID" in lastAssistantMsg) || typeof lastAssistantMsg.providerID !== "string") {
       setCurrentProvider(null);
       setCurrentModel(null);
@@ -121,7 +131,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
     setCurrentProvider(providerID);
     setCurrentModel(modelID);
 
-    // Fetch quota
+    // 设置 Provider 并获取额度数据
     setLoading(true);
     setFetchError(null);
     const supported = props.quotaService.setActiveProvider(providerID);
@@ -135,7 +145,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
 
     props.quotaService.fetchQuota()
       .then((data) => {
-        // Ignore stale responses
+        // 忽略过期响应（provider 已切换）
         if (requestId !== currentRequestId) return;
         if (data && data.quota) {
           setResult(data);
@@ -153,7 +163,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       });
   });
 
-  // Interval for countdown display
+  // 倒计时定时器 effect
   createEffect(() => {
     setRefreshCountdown(REFRESH_INTERVAL);
     const id = setInterval(() => {
