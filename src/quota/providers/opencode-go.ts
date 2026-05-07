@@ -66,8 +66,17 @@ export class OpenCodeGoQuotaProvider implements QuotaProvider {
       const weeklyMatch = text.match(/weeklyUsage:\$R\[2\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
       const monthlyMatch = text.match(/monthlyUsage:\$R\[3\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
 
-      if (!rollingMatch || !weeklyMatch || !monthlyMatch) {
-        console.error("[OpenCodeGoQuotaProvider] Failed to parse response:", text.substring(0, 200));
+      // 分别检查每个字段的解析结果，提供更详细的错误信息
+      if (!rollingMatch) {
+        console.error("[OpenCodeGoQuotaProvider] Failed to parse rollingUsage");
+        return null;
+      }
+      if (!weeklyMatch) {
+        console.error("[OpenCodeGoQuotaProvider] Failed to parse weeklyUsage");
+        return null;
+      }
+      if (!monthlyMatch) {
+        console.error("[OpenCodeGoQuotaProvider] Failed to parse monthlyUsage");
         return null;
       }
 

@@ -102,3 +102,137 @@ npm version patch && git push origin v0.0.x
 ```
 
 推送 tag 触发 CI/CD，同时发布到 npm 和 GitHub Packages。
+
+## 编码规范
+
+### TypeScript 规范
+
+**类型安全**
+- 避免使用 `as any`、`@ts-ignore`、`@ts-expect-error`
+- 使用类型守卫替代类型断言：
+  ```typescript
+  // ❌ 错误
+  const providerID = lastAssistantMsg.providerID as string;
+
+  // ✅ 正确
+  if (!("providerID" in lastAssistantMsg) || typeof lastAssistantMsg.providerID !== "string") {
+    return;
+  }
+  const providerID = lastAssistantMsg.providerID as string;
+  ```
+- 优先使用 `interface` 而非 `type` 来定义对象结构
+
+**空值处理**
+- 使用 `??` 或 `?.` 代替 `!` 断言：
+  ```typescript
+  // ❌ 危险
+  return { quota: quota! };
+
+  // ✅ 安全
+  if (!quota) return null;
+  return { quota };
+  ```
+
+### Solid.js 规范
+
+**信号与响应**
+- 组件顶层使用 `createSignal` 定义状态
+- `createEffect` 用于副作用（数据获取、订阅）
+- 使用 `onCleanup` 清理副作用（如 setInterval）：
+  ```typescript
+  createEffect(() => {
+    const id = setInterval(() => { ... }, 1000);
+    onCleanup(() => clearInterval(id));
+  });
+  ```
+
+**竞态条件处理**
+- 使用请求 ID 计数器忽略过期响应：
+  ```typescript
+  let currentRequestId = 0;
+  createEffect(() => {
+    const requestId = ++currentRequestId;
+    fetchData().then(data => {
+      if (requestId !== currentRequestId) return; // 忽略过期
+      setData(data);
+    });
+  });
+  ```
+
+**组件渲染**
+- 使用 `<Show>` 代替三元表达式做条件渲染
+- 使用 `<For>` 代替 `.map()` 渲染列表
+- 避免在 JSX 中直接调用方法，使用 signal 依赖自动更新
+
+**性能优化**
+- 避免不必要的数组拷贝：
+  ```typescript
+  // ❌ 创建新数组
+  const last = [...messages].reverse().find(m => m.role === "assistant");
+
+  // ✅ 反向迭代
+  let last = null;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "assistant") {
+      last = messages[i];
+      break;
+    }
+  }
+  ```
+
+### 错误处理规范
+
+**Provider 错误处理**
+- API 错误应记录日志并返回 `null`
+- 不要抛出异常，让调用方处理
+- 区分不同类型的错误（网络错误、业务错误、解析错误）
+
+**日志规范**
+- 只使用 `console.warn` 和 `console.error`
+- 生产代码禁止 `console.log`（调试日志）
+- 错误日志包含足够的上下文信息
+
+### 代码组织
+
+**模块职责**
+- `formatters.ts` - 纯函数，不依赖外部状态
+- `components.tsx` - 可复用 UI 组件
+- `quota/providers/` - 特定 API 的数据获取逻辑
+
+**导入规范**
+- 显式文件扩展名：`.js`、`.jsx`
+- 公共 API 在 `index.ts` 统一导出
+
+**Provider 接口设计**
+- 最小接口：`name` + `init()` + `fetchQuota()`
+- `name` 必须与配置 key 匹配
+- `init()` 接收配置，存储认证信息
+- `fetchQuota()` 返回 `QuotaData | null`
+
+### 命名规范
+
+**组件函数**
+- 使用 PascalCase：`UsageView`、`SessionInfoView`
+- 辅助函数使用 camelCase：`formatNumber`、`formatDurationCompact`
+
+**类型命名**
+- 接口使用 PascalCase：`QuotaProvider`、`ProviderConfig`
+- 数据结构使用 PascalCase：`QuotaResult`、`TokenStats`
+
+**常量命名**
+- 使用 UPPER_SNAKE_CASE：`REFRESH_INTERVAL = 60`
+
+### 代码风格
+
+**注释规范**
+- 为公开 API、复杂逻辑添加注释
+- 使用中文注释解释业务逻辑
+- 避免显而易见的注释（如 `// 累加`）
+
+**代码重复**
+- 重复超过 2 处应提取为公共函数
+- `formatDurationCompact` 等工具函数放在 `formatters.ts`
+
+**函数长度**
+- 函数应保持简短（建议 < 50 行）
+- 过长函数应拆分为更小的辅助函数
