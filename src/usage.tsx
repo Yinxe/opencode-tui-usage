@@ -5,6 +5,7 @@ import { Title, ProgressBar } from "./components.jsx";
 import { formatDuration } from "./formatters.js";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { QuotaResult } from "./quota/types.js";
+import { findLastAssistantMessage } from "./utils.js";
 
 /** 额度刷新间隔（秒） */
 const REFRESH_INTERVAL = 60;
@@ -124,16 +125,8 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       return;
     }
 
-    // 从后向前查找最后一个 assistant 消息
-    let lastAssistantMsg = null;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "assistant") {
-        lastAssistantMsg = messages[i];
-        break;
-      }
-    }
-
-    if (!lastAssistantMsg) {
+    const lastMsg = findLastAssistantMessage(messages);
+    if (!lastMsg) {
       setCurrentProvider(null);
       setCurrentModel(null);
       setFetchError(null);
@@ -141,18 +134,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
       return;
     }
 
-    if (!("providerID" in lastAssistantMsg) || typeof lastAssistantMsg.providerID !== "string") {
-      setCurrentProvider(null);
-      setCurrentModel(null);
-      setFetchError(null);
-      setProviderSupported(false);
-      return;
-    }
-
-    const providerID = lastAssistantMsg.providerID as string;
-    const modelID = "modelID" in lastAssistantMsg && typeof lastAssistantMsg.modelID === "string"
-      ? lastAssistantMsg.modelID
-      : "";
+    const { providerID, modelID } = lastMsg;
 
     // 检查是否真的发生了变化
     if (providerID !== currentProvider() || modelID !== currentModel()) {
@@ -218,6 +200,7 @@ export function UsageView(props: UsageViewProps): JSX.Element {
             </box>
             <ProgressBar value={0} color="#4da6ff" />
           </box>
+          <text fg="#888">Refreshing...</text>
         </>
       ) : result() && result()!.quota ? (
         <>
