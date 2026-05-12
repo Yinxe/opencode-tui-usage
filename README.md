@@ -19,11 +19,13 @@ OpenCode TUI 插件，在侧边栏显示用量和额度信息，支持多额度 
 ```json
 {
   "$schema": "https://opencode.ai/tui.json",
-  "plugin": ["@yinxe/opencode-tui-usage"]
+  "plugin": ["@yinxe/opencode-tui-usage@latest"]
 }
 ```
 
 重启 OpenCode 使插件生效。
+
+> 首次配置或修改插件版本后，下次重启 OpenCode 会花费一些时间从 npm 自动下载安装插件。
 
 ## 配置额度 Provider
 
