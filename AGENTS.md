@@ -79,10 +79,52 @@ sidebar_content slot 顺序:
 
 ## 添加新 Provider 适配器
 
-1. 在 `src/quota/providers/` 创建 `{name}.ts`
-2. 实现 `QuotaProvider` 接口，`name` 必须与 `usage.provider.json` 中的 key 匹配
-3. 在 `src/quota/service.ts` 构造函数中注册
-4. 配置 `~/.config/opencode/usage.provider.json`
+### 1. 抓包获取 API
+
+在浏览器中打开目标网站的额度页面，开发者工具 → Network，找到获取额度数据的请求，Copy as cURL。
+
+### 2. 调试 curl，精简参数
+
+```bash
+# 逐步删除不需要的 headers，保留最小可复现的请求
+# 移除浏览器特有 headers：sec-fetch-*, user-agent, referer, accept-language 等
+# 保留核心：认证信息 + Content-Type
+curl -s 'https://example.com/api/quota' \
+  -H 'Authorization: Bearer xxx' \
+  | jq .
+```
+
+目标：得到一个**稳定可复现**、**参数最少**的 curl 命令。
+
+### 3. 分析响应结构
+
+运行精简后的 curl，将响应字段映射到 `QuotaData`：
+
+| 响应字段 | QuotaData 字段 | 说明 |
+|----------|---------------|------|
+| `xxx.total` / `xxx.used` | `rolling.usage` | 计算百分比 |
+| `xxx.reset_time` | `rolling.reset` | 用 `formatDurationCompact()` 格式化 |
+
+### 4. 编写适配器
+
+在 `src/quota/providers/` 创建 `{name}.ts`，实现 `QuotaProvider` 接口，`name` 必须与 `usage.provider.json` 中的 key 匹配。参考已有适配器 `minimax.ts`、`opencode-go.ts`。
+
+### 5. 注册到 QuotaService
+
+在 `src/quota/service.ts` 构造函数中注册：
+
+```typescript
+import { MyQuotaProvider } from "./providers/my-provider.js";
+this.registerProvider(new MyQuotaProvider());
+```
+
+### 6. 配置
+
+在 `~/.config/opencode/usage.provider.json` 中添加配置。
+
+### 7. 测试
+
+构建并重启 OpenCode，切换到对应 provider 的会话，检查侧边栏额度显示。
 
 ## 调试
 
@@ -208,6 +250,23 @@ npm version patch && git push origin v0.0.x
 - `name` 必须与配置 key 匹配
 - `init()` 接收配置，存储认证信息
 - `fetchQuota()` 返回 `QuotaData | null`
+
+**环境变量引用**
+- 配置文件的值支持两种环境变量格式，推荐使用 `{env:VAR}` 与 OpenCode 配置语法保持一致：
+  ```json
+  {
+    "providers": {
+      "my-provider": {
+        "apiKey": "{env:MY_API_KEY}"
+      }
+    }
+  }
+  ```
+- 旧写法 `${MY_API_KEY}` 同样支持，但不推荐新项目使用
+- 适配器中通过 `resolveEnvVar()` 解析配置值，自动处理两种格式：
+  ```typescript
+  this.apiKey = resolveEnvVar(config.apiKey as string | undefined);
+  ```
 
 ### 命名规范
 

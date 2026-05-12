@@ -14,30 +14,7 @@ OpenCode TUI 插件，在侧边栏显示用量和额度信息，支持多额度 
 
 ## 安装
 
-包发布在 npm 和 GitHub Packages，推荐从 npm 安装。
-
-### 从 npm 安装（推荐）
-
-```bash
-npm install @yinxe/opencode-tui-usage
-```
-
-### 从 GitHub Packages 安装
-
-```bash
-# 设置 registry
-npm config set @yinxe:registry https://npm.pkg.github.com
-
-# 登录（需要 GitHub Personal Access Token）
-echo "YOUR_GITHUB_TOKEN" | npm login --registry=https://npm.pkg.github.com --username=YOUR_GITHUB_USERNAME --email=you@example.com
-
-# 安装
-npm install @yinxe/opencode-tui-usage
-```
-
-### 配置插件
-
-安装后，在 `~/.config/opencode/tui.json` 中添加：
+在 `~/.config/opencode/tui.json` 中添加插件路径：
 
 ```json
 {
@@ -46,23 +23,20 @@ npm install @yinxe/opencode-tui-usage
 }
 ```
 
-### 本地安装（开发）
-
-1. 克隆或下载此项目到本地
-2. 在 `~/.config/opencode/tui.json` 中添加插件路径：
-
-```json
-{
-  "$schema": "https://opencode.ai/tui.json",
-  "plugin": ["/absolute/path/to/opencode-tui-usage-plugin"]
-}
-```
-
-3. 重启 OpenCode 使插件生效
+重启 OpenCode 使插件生效。
 
 ## 配置额度 Provider
 
 插件支持多个额度 provider，会根据当前会话的 `providerID` 自动选择对应的适配器。
+
+### 环境变量引用
+
+配置值支持两种环境变量引用格式，从 `process.env` 读取实际值：
+
+| 格式 | 示例 | 说明 |
+|------|------|------|
+| `${VAR}` | `"apiKey": "${MY_KEY}"` | 旧写法（兼容） |
+| `{env:VAR}` | `"apiKey": "{env:MY_KEY}"` | 新写法 |
 
 ### MiniMax-CN
 
@@ -154,38 +128,91 @@ src/
 
 ## 添加新的 Provider 适配器
 
-如果需要支持新的额度来源（如其他 AI provider），按以下步骤添加：
+如果需要支持新的额度来源（如其他 AI provider），按以下流程添加：
 
-### 1. 创建适配器文件
+### 1. 抓包获取 API
 
-在 `src/quota/providers/` 下创建 `{provider-name}.ts`：
+在浏览器中打开目标网站的额度页面（如 `https://example.com/workspace/xxx/usage`），打开开发者工具 → Network，找到获取额度数据的请求：
+
+- **Chrome/Edge**: 右键请求 → Copy → Copy as cURL
+- **Firefox**: 右键请求 → Copy Value → Copy as cURL
+
+### 2. 调试 curl，精简参数
+
+拿到 curl 后，在终端中反复调试，逐步移除不必要的 headers 和参数，直到找到最小可复现的请求。常用技巧：
+
+```bash
+# 逐步删除 headers，看哪些是必需的（通常是 Authorization/Cookie）
+# 移除浏览器特有的 headers：sec-fetch-*, user-agent, referer, accept-language 等
+# 保留核心：认证信息 + Content-Type
+
+# 调试过程中可以用 | jq 格式化响应，方便分析
+curl -s 'https://example.com/api/quota' \
+  -H 'Authorization: Bearer xxx' \
+  | jq .
+```
+
+目标：得到一个**稳定可复现**、**参数最少**的 curl 命令。
+
+### 3. 分析响应结构
+
+运行精简后的 curl，分析响应 JSON，找到需要的数据字段：
+
+- 哪些字段对应 Rolling / Weekly / Monthly 的已用量和总量？
+- 哪些字段包含重置倒计时？
+- 是否有业务状态码需要检查？
+
+将响应中的字段映射到 `QuotaData` 结构：
+
+| 响应字段 | QuotaData 字段 | 说明 |
+|----------|---------------|------|
+| `xxx.total` / `xxx.used` | `rolling.usage` | 计算百分比：`used / total * 100` |
+| `xxx.reset_time` | `rolling.reset` | 用 `formatDurationCompact()` 格式化 |
+| ... | ... | ... |
+
+### 4. 编写适配器
+
+在 `src/quota/providers/` 下创建 `{provider-name}.ts`，参考已有适配器实现：
 
 ```typescript
 import type { QuotaData, ProviderConfig } from "../types.js";
 import { QuotaProvider, resolveEnvVar } from "../provider.js";
+import { formatDurationCompact } from "../../formatters.js";
 
 export class MyQuotaProvider implements QuotaProvider {
   readonly name = "my-provider";  // 与 usage.provider.json 中的 key 对应
+  private apiKey: string | undefined;
 
   init(config: ProviderConfig, _credentials: Record<string, unknown>): void {
     // 读取 config 并解析环境变量
+    this.apiKey = resolveEnvVar(config.apiKey as string | undefined);
   }
 
   async fetchQuota(): Promise<QuotaData | null> {
-    // 调用 API 并返回 QuotaData 格式
+    if (!this.apiKey) {
+      console.warn("[MyQuotaProvider] Missing apiKey");
+      return null;
+    }
+
+    // 用 fetch 调用精简后的 API
+    // 检查 HTTP 状态码和业务状态码
+    // 将响应映射为 QuotaData 返回
   }
 }
 ```
 
-### 2. 注册到 QuotaService
+### 5. 注册到 QuotaService
 
-在 `src/quota/service.ts` 构造函数中添加：
+在 `src/quota/service.ts` 中导入并注册：
 
 ```typescript
+import { MyQuotaProvider } from "./providers/my-provider.js";
+
+// 在 constructor 中添加：
 this.registerProvider(new MyQuotaProvider());
 ```
 
-### 3. 添加配置
+### 6. 添加配置
 
 在 `~/.config/opencode/usage.provider.json` 中添加 provider 配置：
 
@@ -199,9 +226,9 @@ this.registerProvider(new MyQuotaProvider());
 }
 ```
 
-### 4. 测试
+### 7. 测试
 
-切换到对应 provider 的会话，检查侧边栏是否正常显示额度数据。
+构建并重启 OpenCode，切换到对应 provider 的会话，检查侧边栏是否正常显示额度数据。
 
 ## 调试
 
