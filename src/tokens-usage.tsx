@@ -1,14 +1,12 @@
 /** @jsxImportSource @opentui/solid */
 import type { JSX } from "solid-js";
 import { createSignal, createEffect, Show, For } from "solid-js";
-import { TreeItem } from "./components.jsx";
 import { formatNumber, formatCost } from "./formatters.js";
 import { cachedSignal } from "./utils.js";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { AssistantMessage } from "@opencode-ai/sdk/v2";
 
-/** 单个模型的 token 统计 */
-export interface TokenStats {
+interface TokenStats {
   providerID: string;
   modelID: string;
   totalCost: number;
@@ -25,132 +23,93 @@ export interface TokensUsageViewProps {
   sessionId: string;
 }
 
-/**
- * Tokens Usage 视图组件
- * 统计当前会话中所有 assistant 消息的 token 消耗
- * 按模型分组显示累计数据
- */
 export function TokensUsageView(props: TokensUsageViewProps): JSX.Element {
   const [stats, setStats] = cachedSignal<TokenStats[]>("tokens.stats", []);
   const [totals, setTotals] = cachedSignal<{
-    input: number;
-    output: number;
-    reasoning: number;
-    cacheRead: number;
-    cacheWrite: number;
-    cost: number;
+    input: number; output: number; reasoning: number;
+    cacheRead: number; cacheWrite: number; cost: number;
   } | null>("tokens.totals", null);
   const [isLoading, setIsLoading] = cachedSignal<boolean>("tokens.loading", true);
 
   createEffect(() => {
-    const sessionId = props.sessionId;
-    const messages = props.api.state.session.messages(sessionId);
+    const messages = props.api.state.session.messages(props.sessionId);
+    if (!messages || messages.length === 0) { setStats([]); setTotals(null); setIsLoading(false); return; }
 
-    if (!messages || messages.length === 0) {
-      setStats([]);
-      setTotals(null);
-      setIsLoading(false);
-      return;
-    }
-
-    // 按 (providerID, modelID) 分组统计
     const grouped = new Map<string, TokenStats>();
-
     messages.forEach((msg) => {
       if (msg.role !== "assistant") return;
-
-      const assistantMsg = msg as AssistantMessage;
-      if (!assistantMsg.tokens) return;
-
-      // 以 providerID::modelID 作为分组 key
-      const key = `${assistantMsg.providerID || "unknown"}::${assistantMsg.modelID || "unknown"}`;
-
+      const m = msg as AssistantMessage;
+      if (!m.tokens) return;
+      const key = `${m.providerID || "unknown"}::${m.modelID || "unknown"}`;
       if (!grouped.has(key)) {
-        grouped.set(key, {
-          providerID: assistantMsg.providerID || "unknown",
-          modelID: assistantMsg.modelID || "unknown",
-          totalCost: 0,
-          input: 0,
-          output: 0,
-          reasoning: 0,
-          cacheRead: 0,
-          cacheWrite: 0,
-          messageCount: 0,
-        });
+        grouped.set(key, { providerID: m.providerID || "unknown", modelID: m.modelID || "unknown", totalCost: 0, input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, messageCount: 0 });
       }
-
-      // 累加各项数据
-      const stat = grouped.get(key)!;
-      stat.totalCost += assistantMsg.cost || 0;
-      stat.input += assistantMsg.tokens.input || 0;
-      stat.output += assistantMsg.tokens.output || 0;
-      stat.reasoning += assistantMsg.tokens.reasoning || 0;
-      stat.cacheRead += assistantMsg.tokens.cache?.read || 0;
-      stat.cacheWrite += assistantMsg.tokens.cache?.write || 0;
-      stat.messageCount += 1;
+      const s = grouped.get(key)!;
+      s.totalCost += m.cost || 0;
+      s.input += m.tokens.input || 0;
+      s.output += m.tokens.output || 0;
+      s.reasoning += m.tokens.reasoning || 0;
+      s.cacheRead += m.tokens.cache?.read || 0;
+      s.cacheWrite += m.tokens.cache?.write || 0;
+      s.messageCount += 1;
     });
 
-    // 计算总计
-    let totalInput = 0,
-      totalOutput = 0,
-      totalReasoning = 0;
-    let totalCacheRead = 0,
-      totalCacheWrite = 0,
-      totalCost = 0;
-
-    grouped.forEach((stat) => {
-      totalInput += stat.input;
-      totalOutput += stat.output;
-      totalReasoning += stat.reasoning;
-      totalCacheRead += stat.cacheRead;
-      totalCacheWrite += stat.cacheWrite;
-      totalCost += stat.totalCost;
-    });
-
+    let ti = 0, to = 0, tr = 0, tcr = 0, tcw = 0, tcost = 0;
+    grouped.forEach((s) => { ti += s.input; to += s.output; tr += s.reasoning; tcr += s.cacheRead; tcw += s.cacheWrite; tcost += s.totalCost; });
     setStats(Array.from(grouped.values()));
-    setTotals({
-      input: totalInput,
-      output: totalOutput,
-      reasoning: totalReasoning,
-      cacheRead: totalCacheRead,
-      cacheWrite: totalCacheWrite,
-      cost: totalCost,
-    });
+    setTotals({ input: ti, output: to, reasoning: tr, cacheRead: tcr, cacheWrite: tcw, cost: tcost });
     setIsLoading(false);
   });
 
   return (
     <box flexDirection="column" gap={0}>
-      <Show when={isLoading()}>
-        <text fg="#888">...</text>
+      <Show when={isLoading()}><text fg="#888">...</text></Show>
+      <Show when={!isLoading() && stats().length === 0}><text fg="#888">-</text></Show>
+      <Show when={!isLoading() && stats().length > 0 && totals()}>
+        {() => {
+          const t = totals()!;
+          return (
+            <>
+              <box flexDirection="row" gap={0}>
+                <text fg="#6bcf7f">I: </text><text>{formatNumber(t.input)}</text>
+                <text fg="#aaa">  </text>
+                <text fg="#fd79a8">O: </text><text>{formatNumber(t.output)}</text>
+                <text fg="#aaa">  </text>
+                <text fg="#fdcb6e">R: </text><text>{formatNumber(t.reasoning)}</text>
+              </box>
+              <box flexDirection="row" gap={0}>
+                <text fg="#00cec9">Cache: </text><text>R:{formatNumber(t.cacheRead)} W:{formatNumber(t.cacheWrite)}</text>
+                <text fg="#aaa">  </text>
+                <text fg="#ffd93d">Cost: </text><text>{formatCost(t.cost)}</text>
+              </box>
+            </>
+          );
+        }}
       </Show>
-
-      <Show when={!isLoading() && stats().length === 0}>
-        <text fg="#888">-</text>
-      </Show>
-
-      <Show when={!isLoading() && stats().length > 0}>
-        <box flexDirection="column" gap={0}>
-          <TreeItem label="Input" value={formatNumber(totals()?.input ?? 0)} labelColor="#6bcf7f" />
-          <TreeItem label="Output" value={formatNumber(totals()?.output ?? 0)} labelColor="#fd79a8" />
-          <TreeItem label="Reasoning" value={formatNumber(totals()?.reasoning ?? 0)} labelColor="#fdcb6e" />
-          <TreeItem label="Cache" value={`R:${formatNumber(totals()?.cacheRead ?? 0)} W:${formatNumber(totals()?.cacheWrite ?? 0)}`} labelColor="#00cec9" />
-          <TreeItem label="Cost" value={formatCost(totals()?.cost ?? 0)} isLast labelColor="#ffd93d" />
-        </box>
-      </Show>
-
       <Show when={!isLoading() && stats().length > 0}>
         <For each={stats()}>
-          {(stat) => (
-            <box flexDirection="column" gap={0}>
-              <text fg="#74b9ff">{stat.modelID || "unknown"}:</text>
-              <TreeItem indent={1} label="Input" value={formatNumber(stat.input)} labelColor="#6bcf7f" />
-              <TreeItem indent={1} label="Output" value={formatNumber(stat.output)} labelColor="#fd79a8" />
-              <TreeItem indent={1} label="Reasoning" value={formatNumber(stat.reasoning)} labelColor="#fdcb6e" />
-              <TreeItem indent={1} label="Cache" value={formatNumber(stat.cacheRead + stat.cacheWrite)} labelColor="#00cec9" />
-              <TreeItem indent={1} label="Cost" value={`${formatCost(stat.totalCost)} (${stat.messageCount} msg)`} isLast labelColor="#ffd93d" />
-            </box>
-          )}
+          {(stat) => {
+            const items = [
+              { label: "I", value: formatNumber(stat.input), color: "#6bcf7f" },
+              { label: "O", value: formatNumber(stat.output), color: "#fd79a8" },
+              { label: "R", value: formatNumber(stat.reasoning), color: "#fdcb6e" },
+              { label: "Cache", value: formatNumber(stat.cacheRead + stat.cacheWrite), color: "#00cec9" },
+              { label: "Cost", value: `${formatCost(stat.totalCost)} (${stat.messageCount} msg)`, color: "#ffd93d" },
+            ];
+            return (
+              <box flexDirection="column" gap={0}>
+                <text fg="#74b9ff">{stat.modelID || "unknown"}:</text>
+                <For each={items}>
+                  {(item, iIdx) => (
+                    <box flexDirection="row" gap={0}>
+                      <text fg="#555">  {iIdx() === items.length - 1 ? "└─" : "├─"} </text>
+                      <text fg={item.color}>{item.label}: </text><text>{item.value}</text>
+                    </box>
+                  )}
+                </For>
+              </box>
+            );
+          }}
         </For>
       </Show>
     </box>
