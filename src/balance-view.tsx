@@ -3,7 +3,7 @@ import type { JSX } from "solid-js";
 import { createSignal, createEffect, onCleanup, Show } from "solid-js";
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { BalanceData } from "./quota/types.js";
-import { formatDuration } from "./formatters.js";
+
 import { cachedSignal, findLastAssistantMessage } from "./utils.js";
 
 /** 余额刷新间隔（秒） */
@@ -135,23 +135,13 @@ export function BalanceView(props: BalanceViewProps): JSX.Element {
   };
 
   return (
-    <Show when={hasBalance()}>
-      <Show when={loading() && !balance()}>
-        <text fg="#888">Loading...</text>
-      </Show>
-      <Show when={balance()} keyed>
-        {(data: BalanceData) => (
-          <box flexDirection="column" gap={0}>
-            <box flexDirection="row" gap={1}>
-              <text fg="#ffd93d">Balance:</text>
-              <text>
-                ¥{data.totalBalance.toFixed(2)} ({data.currency})
-              </text>
-            </box>
-            <text fg="#888">{formatDuration(refreshCountdown())} Refresh #{refreshCount()}</text>
-          </box>
-        )}
-      </Show>
+    <Show when={hasBalance() && balance()} keyed>
+      {(data: BalanceData) => (
+        <box flexDirection="row" gap={0}>
+          <text fg="#4da6ff">Balance</text>
+          <text>  ¥{data.totalBalance.toFixed(2)}</text>
+        </box>
+      )}
     </Show>
   );
 }
