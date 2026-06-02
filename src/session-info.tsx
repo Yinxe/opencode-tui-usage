@@ -3,7 +3,7 @@ import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import type { JSX } from "solid-js";
 import { createSignal, createEffect, Show } from "solid-js";
 import { ProgressBar } from "./components.jsx";
-import { formatNumber, formatPercent } from "./formatters.js";
+import { formatNumber } from "./formatters.js";
 import { cachedSignal, findLastAssistantMessage } from "./utils.js";
 
 interface SessionData {
@@ -83,7 +83,6 @@ export function SessionInfoView(props: {
                   <text fg="#888">Context: </text>
                   <text fg="#e0e0e0">{formatNumber(ctx.tokens)}/{formatNumber(ctx.limit)} </text>
                   <ProgressBar value={ctx.percent} color="#a29bfe" />
-                  <text fg="#aaa"> {formatPercent(ctx.percent)}</text>
                 </box>
               )}
             </Show>

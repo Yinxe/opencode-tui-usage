@@ -126,7 +126,7 @@ export function ProgressBar(props: ProgressBarProps): JSX.Element {
   const width = props.width ?? 12;
   // 计算填充和空白的字符数
   const filled = Math.round((props.value / 100) * width);
-  const empty = filled === 0 ? width - 1 : width - filled;
+  const empty = width - filled;
   const barColor = props.color ?? '#6bcf7f';
 
   return (
