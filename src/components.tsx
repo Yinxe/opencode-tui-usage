@@ -123,7 +123,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
  * 显示格式：[■■■■■■■■□□] 或类似
  */
 export function ProgressBar(props: ProgressBarProps): JSX.Element {
-  const width = props.width ?? 20;
+  const width = props.width ?? 12;
   // 计算填充和空白的字符数
   const filled = Math.round((props.value / 100) * width);
   const empty = filled === 0 ? width - 1 : width - filled;
