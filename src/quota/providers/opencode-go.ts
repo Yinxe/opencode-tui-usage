@@ -56,10 +56,11 @@ export class OpenCodeGoQuotaProvider implements QuotaProvider {
       const text = await response.text();
 
       // 从响应文本中用正则提取 rolling/weekly/monthly 额度数据
-      // 响应格式如: rollingUsage:$R[1]={status:"active",resetInSec:3600,usagePercent:45}
-      const rollingMatch = text.match(/rollingUsage:\$R\[1\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
-      const weeklyMatch = text.match(/weeklyUsage:\$R\[2\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
-      const monthlyMatch = text.match(/monthlyUsage:\$R\[3\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      // 响应格式如: rollingUsage:$R[N]={status:"active",resetInSec:3600,usagePercent:45}
+      // $R 索引由上游按字段首次出现顺序动态分配，字段增减会导致整体偏移，故用 \d+ 匹配任意索引
+      const rollingMatch = text.match(/rollingUsage:\$R\[\d+\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      const weeklyMatch = text.match(/weeklyUsage:\$R\[\d+\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      const monthlyMatch = text.match(/monthlyUsage:\$R\[\d+\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
 
       // 分别检查每个字段的解析结果，提供更详细的错误信息
       if (!rollingMatch) {
