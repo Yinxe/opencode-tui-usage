@@ -57,9 +57,10 @@ export class OpenCodeGoQuotaProvider implements QuotaProvider {
 
       // 从响应文本中用正则提取 rolling/weekly/monthly 额度数据
       // 响应格式如: rollingUsage:$R[1]={status:"active",resetInSec:3600,usagePercent:45}
-      const rollingMatch = text.match(/rollingUsage:\$R\[1\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
-      const weeklyMatch = text.match(/weeklyUsage:\$R\[2\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
-      const monthlyMatch = text.match(/monthlyUsage:\$R\[3\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      // 索引用 \d+ 而非写死数字：上游在 rollingUsage 前后增删字段时 $R 索引会偏移
+      const rollingMatch = text.match(/rollingUsage:\$R\[\d+\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      const weeklyMatch = text.match(/weeklyUsage:\$R\[\d+\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
+      const monthlyMatch = text.match(/monthlyUsage:\$R\[\d+\]=\{status:"([^"]+)",resetInSec:(\d+),usagePercent:(\d+)\}/);
 
       // 分别检查每个字段的解析结果，提供更详细的错误信息
       if (!rollingMatch) {
